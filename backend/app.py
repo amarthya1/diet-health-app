@@ -55,6 +55,9 @@ def create_app():
     return app
 
 if __name__ == "__main__":
+    from database import init_db, migrate_db
+    init_db()
+    migrate_db()
     app = create_app()
     print("\n  Diet & Health Backend running on http://0.0.0.0:5001\n")
     app.run(host="0.0.0.0", port=5001, debug=True)

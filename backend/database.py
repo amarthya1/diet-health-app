@@ -124,6 +124,19 @@ def init_db():
     conn.commit()
     conn.close()
     print("Database initialized successfully.")
+    migrate_db()
+
+def migrate_db():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("ALTER TABLE reminders ADD COLUMN body TEXT")
+        conn.commit()
+        print("Migration: added body column to reminders")
+    except Exception as e:
+        print("Migration skipped:", str(e))
+    conn.close()
 
 # Auto-init on import
 init_db()
+migrate_db()
