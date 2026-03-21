@@ -1,7 +1,15 @@
 /* === Diet & Health App - Core JS === */
-const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://127.0.0.1:5001/api'
-    : `http://${window.location.hostname}:5001/api`;
+const BASE_URL = (() => {
+    const hostname = window.location.hostname;
+    
+    if (hostname === 'localhost' || 
+        hostname === '127.0.0.1' ||
+        hostname === '192.168.1.3') {
+        return 'http://' + hostname + ':5001/api';
+    } else {
+        return 'https://' + hostname + '/api';
+    }
+})();
 
 /* --- Auth --- */
 const Auth = {
