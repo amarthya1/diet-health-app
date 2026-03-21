@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Analysis - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="top-nav">
+            <div class="brand">Diet & Health</div>
+            <ul class="nav-links">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="analysis.html" class="active">Analysis</a></li>
+                <li><a href="diet.html">Diet</a></li>
+                <li><a href="routine.html">Routine</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-content">
+        <section class="page-intro card">
+            <h1>Health Analysis</h1>
+            <p>Provide your details and symptoms to get personalized diet and lifestyle recommendations.</p>
+        </section>
+
+        <section class="card">
+            <form id="analysisForm" class="analysis-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" name="age" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="height">Height (cm)</label>
+                        <input type="number" id="height" name="height" min="50" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="weight">Weight (kg)</label>
+                        <input type="number" id="weight" name="weight" min="20" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <fieldset class="form-group">
+                    <legend>Symptoms</legend>
+                    <div class="checkbox-grid">
+                        <label><input type="checkbox" name="symptoms" value="hair fall"> Hair fall</label>
+                        <label><input type="checkbox" name="symptoms" value="fatigue"> Fatigue</label>
+                        <label><input type="checkbox" name="symptoms" value="dandruff"> Dandruff</label>
+                        <label><input type="checkbox" name="symptoms" value="dry skin"> Dry skin</label>
+                        <label><input type="checkbox" name="symptoms" value="weak nails"> Weak nails</label>
+                        <label><input type="checkbox" name="symptoms" value="night blindness"> Night blindness</label>
+                        <label><input type="checkbox" name="symptoms" value="bleeding gums"> Bleeding gums</label>
+                        <label><input type="checkbox" name="symptoms" value="skin irritation"> Skin irritation</label>
+                        <label><input type="checkbox" name="symptoms" value="digestion issues"> Digestion issues</label>
+                        <label><input type="checkbox" name="symptoms" value="weakness"> Weakness</label>
+                    </div>
+                </fieldset>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bloodPressure">Blood Pressure</label>
+                        <input type="text" id="bloodPressure" name="bloodPressure" placeholder="e.g. 120/80">
+                    </div>
+                    <div class="form-group">
+                        <label for="bloodSugar">Blood Sugar</label>
+                        <input type="text" id="bloodSugar" name="bloodSugar" placeholder="e.g. 90 mg/dL">
+                    </div>
+                    <div class="form-group">
+                        <label for="hemoglobin">Hemoglobin</label>
+                        <input type="text" id="hemoglobin" name="hemoglobin" placeholder="e.g. 13.5 g/dL">
+                    </div>
+                </div>
+
+                <fieldset class="form-group">
+                    <legend>Food Preference</legend>
+                    <label><input type="radio" name="foodPreference" value="veg" required> Veg</label>
+                    <label><input type="radio" name="foodPreference" value="non-veg"> Non-veg</label>
+                    <label><input type="radio" name="foodPreference" value="vegan"> Vegan</label>
+                </fieldset>
+
+                <div class="form-group">
+                    <label for="allergies">Allergies</label>
+                    <input type="text" id="allergies" name="allergies" placeholder="e.g. nuts, dairy">
+                </div>
+
+                <div class="form-group">
+                    <label for="healthGoal">Health Goal</label>
+                    <select id="healthGoal" name="healthGoal" required>
+                        <option value="">Choose goal</option>
+                        <option value="weight loss">Weight loss</option>
+                        <option value="muscle gain">Muscle gain</option>
+                        <option value="general health">General health</option>
+                        <option value="hair and skin">Hair and skin</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="medications">Current Medications</label>
+                    <input type="text" id="medications" name="medications" placeholder="Optional">
+                </div>
+
+                <button type="submit" class="primary-btn">Analyze Health</button>
+            </form>
+        </section>
+
+        <section id="resultCard" class="card" style="display: none;">
+            <h2>Analysis Result</h2>
+            <div id="bmiResult"></div>
+            <div id="deficiencyResult"></div>
+            <div id="summaryResult"></div>
+            <div id="foodResult"></div>
+            <div id="adviceResult"></div>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (typeof appApi !== 'undefined' && appApi.logout) {
+                appApi.logout();
+            } else {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        });
+        
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const form = e.target;
+            const symptoms = [...form.querySelectorAll('input[name="symptoms"]:checked')].map(i => i.value);
+            const foodPreference = form.querySelector('input[name="foodPreference"]:checked')?.value || '';
+
+            const payload = {
+                age: Number(form.age.value),
+                height: Number(form.height.value),
+                weight: Number(form.weight.value),
+                gender: form.gender.value,
+                symptoms,
+                bloodPressure: form.bloodPressure.value.trim(),
+                bloodSugar: form.bloodSugar.value.trim(),
+                hemoglobin: form.hemoglobin.value.trim(),
+                foodPreference,
+                allergies: form.allergies.value.trim(),
+                healthGoal: form.healthGoal.value,
+                medications: form.medications.value.trim()
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:5001/api/health/analyze-health', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Analysis failed');
+                }
+
+                const bmi = result.bmi || calculateBMI(payload.weight, payload.height);
+                const category = result.bmiCategory || categorizeBMI(bmi);
+                displayResult({
+                    bmi,
+                    category,
+                    deficiencies: result.deficiencies || [],
+                    conditionSummary: result.healthConditionSummary || 'No summary available.',
+                    recommendedFoods: result.recommendedFoods || [],
+                    lifestyleAdvice: result.lifestyleAdvice || 'Follow a balanced routine and hydrate well.'
+                });
+            } catch (error) {
+                console.error('Analysis request failed:', error);
+                alert(`Analysis error: ${error.message}`);
+            }
+        });
+
+        function calculateBMI(weight, heightCm) {
+            if (!weight || !heightCm) return null;
+            const heightM = heightCm / 100;
+            return Number((weight / (heightM * heightM)).toFixed(1));
+        }
+
+        function categorizeBMI(bmi) {
+            if (bmi === null) return 'Unknown';
+            if (bmi < 18.5) return 'Underweight';
+            if (bmi < 25) return 'Normal weight';
+            if (bmi < 30) return 'Overweight';
+            return 'Obese';
+        }
+
+        function displayResult({ bmi, category, deficiencies, conditionSummary, recommendedFoods, lifestyleAdvice }) {
+            document.getElementById('resultCard').style.display = 'block';
+            document.getElementById('bmiResult').innerHTML = `<h3>BMI</h3><p>${bmi} (${category})</p>`;
+            document.getElementById('deficiencyResult').innerHTML = `<h3>Detected Deficiencies</h3><p>${deficiencies.length ? deficiencies.join(', ') : 'None detected'}</p>`;
+            document.getElementById('summaryResult').innerHTML = `<h3>Health Condition Summary</h3><p>${conditionSummary}</p>`;
+            document.getElementById('foodResult').innerHTML = `<h3>Recommended Foods</h3><p>${recommendedFoods.length ? recommendedFoods.join(', ') : 'No specific recommendations'}</p>`;
+            document.getElementById('adviceResult').innerHTML = `<h3>Lifestyle Advice</h3><p>${lifestyleAdvice}</p>`;
+            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .wizard-container { max-width: 840px; margin: 34px auto; padding: 0 16px; }
+        .progress-wrapper { margin-bottom: 20px; }
+        .progress-bar { width: 100%; height: 8px; background: #e6f1e8; border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0; background: #4CAF50; border-radius: 999px; transition: width 0.35s ease; }
+        .step-title { margin-bottom: 16px; font-size: 1.2rem; color: #225d24; font-weight: 700; }
+        .step-description { margin-bottom: 18px; color: #4f6d53; }
+        .step-panel { animation: fadeIn 0.3s ease both; }
+
+        .cards-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }
+        .card-choice {
+            border: 1px solid #cde9c8;
+            border-radius: 12px;
+            padding: 14px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            min-height: 96px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .card-choice.selected { border-color: #4CAF50; background: #eaf9ed; box-shadow: 0 6px 14px rgba(76,175,80,0.2); }
+        .card-choice span.emoji { font-size: 1.5rem; margin-bottom: 8px; }
+        .card-choice span.label { font-weight: 600; color: #2f6833; }
+
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+        .form-group input[type='number'], .form-group input[type='text'], .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #cde9c8; border-radius: 10px; }
+        .check-row { display: flex; align-items: center; gap: 8px; }
+
+        .buttons-row { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
+        .btn-secondary { border: 1px solid #8cbf8a; color: #2f6833; background: #f5faf5; padding: 10px 18px; border-radius: 10px; cursor: pointer; }
+        .btn-primary { border: none; background: #4CAF50; color: #fff; padding: 10px 18px; border-radius: 10px; cursor: pointer; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+    </style>
+</head>
+<body>
+    <div class="container wizard-container">
+        <div class="progress-wrapper">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <p id="progressText" style="margin:8px 0 0; color:#4f6d53;font-weight:600;">Step 1 of 5</p>
+        </div>
+
+        <section id="step1" class="step-panel">
+            <h2 class="step-title">What's your main goal?</h2>
+            <p class="step-description">Choose one option to personalize your plan.</p>
+            <div class="cards-grid" id="goalGrid"></div>
+            <div class="buttons-row"><button class="btn-primary" id="next1">Next</button></div>
+        </section>
+
+        <section id="step2" class="step-panel" style="display:none;">
+            <h2 class="step-title">Do you have any of these problems?</h2>
+            <p class="step-description">Select any that apply.</p>
+            <div class="cards-grid" id="problemsGrid"></div>
+            <div class="buttons-row"><button class="btn-secondary" id="back2">Back</button><button class="btn-primary" id="next2">Next</button></div>
+        </section>
+
+        <section id="step3" class="step-panel" style="display:none;">
+            <h2 class="step-title">Tell us about yourself</h2>
+            <p class="step-description">Basic personal details help us tailor your plan.</p>
+            <div class="cards-grid" id="genderGrid"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Age</label><input type="number" id="inputAge" min="10" max="120"></div>
+                <div class="form-group"><label>Height (cm)</label><input type="number" id="inputHeight" min="100" max="230"></div>
+                <div class="form-group"><label>Weight (kg)</label><input type="number" id="inputWeight" min="30" max="200"></div>
+            </div>
+            <div class="buttons-row"><button class="btn-secondary" id="back3">Back</button><button class="btn-primary" id="next3">Next</button></div>
+        </section>
+
+        <section id="step4" class="step-panel" style="display:none;">
+            <h2 class="step-title">What do you eat?</h2>
+            <div class="cards-grid" id="foodGrid"></div>
+            <div class="form-group"><label>Allergies</label><input type="text" id="inputAllergies" placeholder="e.g. nuts, dairy"></div>
+            <div class="buttons-row"><button class="btn-secondary" id="back4">Back</button><button class="btn-primary" id="next4">Next</button></div>
+        </section>
+
+        <section id="step5" class="step-panel" style="display:none;">
+            <h2 class="step-title">Any current medications?</h2>
+            <div class="form-group"><textarea id="inputMedications" rows="4" placeholder="List your current medications"></textarea></div>
+            <div class="check-row"><input type="checkbox" id="noMedications"><label for="noMedications">No medications</label></div>
+            <div class="buttons-row"><button class="btn-secondary" id="back5">Back</button><button class="btn-primary" id="finish">Finish</button></div>
+        </section>
+    </div>
+
+    <script>
+        const state = {
+            step: 1,
+            goal: null,
+            problems: [],
+            gender: null,
+            age: null,
+            height: null,
+            weight: null,
+            foodPreference: null,
+            allergies: '',
+            medications: ''
+        };
+
+        const steps = [1,2,3,4,5];
+
+        const updateProgress = () => {
+            const percent = (state.step - 1) / (steps.length - 1) * 100;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `Step ${state.step} of ${steps.length}`;
+        };
+
+        const showStep = (num) => {
+            steps.forEach(s => document.getElementById(`step${s}`).style.display = 'none');
+            document.getElementById(`step${num}`).style.display = 'block';
+            state.step = num;
+            updateProgress();
+        };
+
+        function createCard(value, label, targetContainer, isMulti=false, stateKey='') {
+            const card = document.createElement('div');
+            card.className = 'card-choice';
+            card.innerHTML = `<span class="emoji">${value}</span><span class="label">${label}</span>`;
+            card.addEventListener('click', () => {
+                if (isMulti) {
+                    const idx = state[stateKey].indexOf(label);
+                    if (idx >= 0) {
+                        state[stateKey].splice(idx,1);
+                        card.classList.remove('selected');
+                    } else {
+                        state[stateKey].push(label);
+                        card.classList.add('selected');
+                    }
+                } else {
+                    state[stateKey] = label;
+                    document.querySelectorAll(`#${targetContainer} .card-choice`).forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                }
+            });
+            document.getElementById(targetContainer).appendChild(card);
+        }
+
+        window.onload = () => {
+            const goals = [
+                ['🏃', 'Lose Weight'], ['💪', 'Gain Muscle'], ['🥗', 'Eat Healthier'],
+                ['💊', 'Fix Nutritional Deficiency'], ['✨', 'Improve Skin & Hair'], ['😴', 'Boost Energy']
+            ];
+            goals.forEach(([emoji,label]) => createCard(emoji,label,'goalGrid',false,'goal'));
+
+            const problems = ['Hair fall','Fatigue','Dandruff','Dry skin','Weak nails','Digestion issues','Sleep problems','Low energy'];
+            problems.forEach(p => createCard('',p,'problemsGrid',true,'problems'));
+
+            ['Male','Female','Other'].forEach(g => createCard('',g,'genderGrid',false,'gender'));
+
+            [['🥦','Vegetarian'], ['🍖','Non-Vegetarian'], ['🌱','Vegan']].forEach(([e,l]) => createCard(e,l,'foodGrid',false,'foodPreference'));
+
+            updateProgress();
+
+            document.getElementById('next1').addEventListener('click', () => state.goal ? showStep(2) : alert('Please choose a goal.'));
+            document.getElementById('next2').addEventListener('click', () => showStep(3));
+            document.getElementById('next3').addEventListener('click', () => {
+                state.age = Number(document.getElementById('inputAge').value);
+                state.height = Number(document.getElementById('inputHeight').value);
+                state.weight = Number(document.getElementById('inputWeight').value);
+                if (!state.gender||!state.age||!state.height||!state.weight) return alert('Please complete all info.');
+                showStep(4);
+            });
+            document.getElementById('next4').addEventListener('click', () => {
+                state.allergies = document.getElementById('inputAllergies').value.trim();
+                if (!state.foodPreference) return alert('Select a food preference.');
+                showStep(5);
+            });
+
+            document.getElementById('back2').addEventListener('click', () => showStep(1));
+            document.getElementById('back3').addEventListener('click', () => showStep(2));
+            document.getElementById('back4').addEventListener('click', () => showStep(3));
+            document.getElementById('back5').addEventListener('click', () => showStep(4));
+
+            document.getElementById('noMedications').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    document.getElementById('inputMedications').value = '';
+                    document.getElementById('inputMedications').disabled = true;
+                } else {
+                    document.getElementById('inputMedications').disabled = false;
+                }
+            });
+
+            document.getElementById('finish').addEventListener('click', async () => {
+                state.medications = document.getElementById('inputMedications').value.trim();
+                if (document.getElementById('noMedications').checked) state.medications = 'None';
+
+                localStorage.setItem('onboardingState', JSON.stringify(state));
+
+                try {
+                    const response = await fetch('http://127.0.0.1:5001/api/user/profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(state)
+                    });
+                    if (!response.ok) throw new Error('Server error');
+                    alert('Onboarding completed! Redirecting...');
+                    window.location.href = 'home.html';
+                } catch (err) {
+                    console.error(err);
+                    alert('Error submitting onboard data. Please try again.');
+                }
+            });
+        };
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

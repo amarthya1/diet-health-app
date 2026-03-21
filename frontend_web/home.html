@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="top-nav">
+            <div class="brand">Diet & Health</div>
+            <ul class="nav-links">
+                <li><a href="home.html" class="active">Home</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="diet.html">Diet</a></li>
+                <li><a href="routine.html">Routine</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-content">
+        <section class="welcome-card">
+            <h1 id="welcomeText">Welcome, guest</h1>
+            <p>Prepare personalized diet plans and track your health goals.</p>
+            <button id="dietBtn" class="primary-btn">Go to Diet Planner</button>
+        </section>
+
+        <section class="tips-grid">
+            <article class="tip-card">
+                <h3>Balanced plates</h3>
+                <p>Include vegetables, lean protein, and whole grains at every meal.</p>
+            </article>
+            <article class="tip-card">
+                <h3>Hydration first</h3>
+                <p>Drink 8 glasses of water daily to support metabolism and digestion.</p>
+            </article>
+            <article class="tip-card">
+                <h3>Mindful eating</h3>
+                <p>Eat slowly and stop when you're about 80% full.</p>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const userEmail = localStorage.getItem('userEmail');
+
+        if (userEmail) {
+            document.getElementById('welcomeText').textContent = `Welcome, ${userEmail}`;
+        } else {
+            document.getElementById('welcomeText').textContent = 'Welcome, health friend';
+        }
+
+        document.getElementById('dietBtn').addEventListener('click', () => {
+            window.location.href = 'diet.html';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (typeof appApi !== 'undefined' && appApi.logout) {
+                appApi.logout();
+            } else {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Plan - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="top-nav">
+            <div class="brand">Diet & Health</div>
+            <ul class="nav-links">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="diet.html" class="active">Diet</a></li>
+                <li><a href="routine.html">Routine</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-content">
+        <section class="page-intro">
+            <h1>Diet Plan</h1>
+            <p>Track your meal plan for balanced nutrition.</p>
+        </section>
+
+        <section class="diet-grid">
+            <article class="diet-card">
+                <h3>Breakfast</h3>
+                <ul>
+                    <li>Oatmeal with fresh berries</li>
+                    <li>Greek yogurt with honey</li>
+                    <li>Green tea</li>
+                </ul>
+            </article>
+
+            <article class="diet-card">
+                <h3>Lunch</h3>
+                <ul>
+                    <li>Grilled chicken salad</li>
+                    <li>Quinoa and mixed greens</li>
+                    <li>Avocado slices</li>
+                </ul>
+            </article>
+
+            <article class="diet-card">
+                <h3>Dinner</h3>
+                <ul>
+                    <li>Steamed salmon</li>
+                    <li>Roasted Brussels sprouts</li>
+                    <li>Sweet potato mash</li>
+                </ul>
+            </article>
+
+            <article class="diet-card">
+                <h3>Snacks</h3>
+                <ul>
+                    <li>Almonds and walnuts</li>
+                    <li>Carrot sticks with hummus</li>
+                    <li>Apple slices</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (typeof appApi !== 'undefined' && appApi.logout) {
+                appApi.logout();
+            } else {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="top-nav">
+            <div class="brand">Diet & Health</div>
+            <ul class="nav-links">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="diet.html">Diet</a></li>
+                <li><a href="routine.html">Routine</a></li>
+                <li><a href="profile.html" class="active">Profile</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <main class="page-content">
+        <section class="profile-card">
+            <h1>Profile</h1>
+            <p id="profileEmail">Email: Not signed in</p>
+            <p>Use this profile page to keep your details updated.</p>
+        </section>
+    </main>
+
+    <script>
+        const userEmail = localStorage.getItem('userEmail');
+        const profileEmail = document.getElementById('profileEmail');
+
+        if (userEmail) {
+            profileEmail.textContent = `Email: ${userEmail}`;
+        } else {
+            profileEmail.textContent = 'Email: Not signed in. Please login first.';
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (typeof appApi !== 'undefined' && appApi.logout) {
+                appApi.logout();
+            } else {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>
