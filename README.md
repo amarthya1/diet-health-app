@@ -1,120 +1,136 @@
-# 🥗 Diet & Health Analysis App
+# 🌿 NutriFlow
+### Personalized Diet & Vitamin Advisory System
 
-A full-stack diet planner and health analysis application.
+A full-stack health and nutrition web application that 
+analyzes symptoms, detects vitamin deficiencies, and 
+provides personalized diet plans, daily routines, and 
+health reminders.
 
-- **Backend**: Python Flask REST API
-- **Frontend**: Flutter (Android + Web)
+## 🌐 Live Demo
+https://diet-health-app.onrender.com
 
----
+## ✨ Features
+- 🔍 Health Analysis - Symptom-based vitamin deficiency detection
+- 🥗 Diet Planning - Personalized meal plans (Veg/Non-Veg/Vegan)
+- 📅 Routine Generator - Daily schedule based on health goals
+- 🔔 Smart Reminders - Medicine, meal, water, exercise notifications
+- 📊 Progress Tracker - Track daily health habits
+- 👤 User Profile - Personal health history
+- 🌙 Dark/Light Theme - Customizable interface
+- 📱 PWA Support - Install on mobile like a native app
 
-## 📁 Project Structure
+## 🛠️ Tech Stack
 
-```
-diet_health_app/
-├── backend/                    ← Python Flask API
-│   ├── app.py                  ← Flask entry point
-│   ├── requirements.txt        ← Python dependencies
-│   ├── .env.example            ← Environment variable template
-│   ├── config/
-│   │   └── settings.py         ← App configuration
-│   ├── routes/
-│   │   ├── diet_routes.py      ← /api/diet endpoints
-│   │   ├── health_routes.py    ← /api/health endpoints
-│   │   ├── user_routes.py      ← /api/user endpoints
-│   │   └── analysis_routes.py  ← /api/analysis endpoints
-│   ├── services/
-│   │   ├── diet_service.py     ← Meal plan & food logic
-│   │   ├── health_service.py   ← BMI, TDEE, vitals logic
-│   │   ├── user_service.py     ← Auth & profile logic
-│   │   └── analysis_service.py ← AI insights & reports
-│   ├── data/
-│   │   ├── models/
-│   │   │   └── models.py       ← Domain dataclasses
-│   │   └── sample_data/
-│   │       └── foods.json      ← Sample food nutrition DB
-│   └── utils/
-│       └── helpers.py          ← Shared utility functions
-│
-└── frontend/                   ← Flutter App (Android + Web)
-    ├── pubspec.yaml            ← Flutter dependencies
-    ├── lib/
-    │   ├── main.dart           ← App entry point
-    │   ├── themes/
-    │   │   └── app_theme.dart  ← Light & dark theme
-    │   ├── services/
-    │   │   └── api_service.dart ← HTTP client for Flask API
-    │   ├── screens/
-    │   │   ├── home/           ← Bottom nav shell
-    │   │   ├── auth/           ← Login & registration
-    │   │   ├── diet/           ← Meal planner & food log
-    │   │   ├── health/         ← BMI, TDEE, vitals
-    │   │   ├── analysis/       ← Charts & AI insights
-    │   │   └── profile/        ← User profile & goals
-    │   ├── widgets/            ← Reusable UI components
-    │   ├── models/             ← Dart data models
-    │   └── utils/              ← Helper utilities
-    ├── assets/
-    │   ├── images/             ← App images
-    │   └── icons/              ← Custom icons
-    ├── android/                ← Android build files
-    └── web/                    ← Web build files
-```
+### Frontend
+- HTML5, CSS3, JavaScript (Vanilla)
+- Progressive Web App (PWA)
+- Responsive Design (Mobile + Desktop)
+- Chart.js for data visualization
 
----
+### Backend
+- Python 3.12
+- Flask (REST API framework)
+- Flask-CORS (Cross-origin resource sharing)
+- Werkzeug (Password hashing)
+
+### Database
+- SQLite (Local development)
+
+### Deployment
+- GitHub (Version control)
+- Render.com (Cloud hosting)
+
+### Analysis Engine
+- Rule-based inference system
+- WHO nutritional standards
+- Symptom to deficiency mapping
+- BMI and vitals analysis
 
 ## 🚀 Getting Started
 
-### Backend
+### Prerequisites
+- Python 3.12+
+- Git
 
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/amarthya1/diet-health-app.git
+cd diet-health-app
+```
+
+2. Set up virtual environment:
 ```bash
 cd backend
-
-# Create a virtual environment
 python -m venv venv
-venv\Scripts\activate       # Windows
+venv\Scripts\activate.bat  (Windows)
+```
 
-# Install dependencies
+3. Install dependencies:
+```bash
 pip install -r requirements.txt
+```
 
-# Copy and configure environment variables
-copy .env.example .env
-
-# Run the server
+4. Start the app:
+Double click start.bat
+OR
+```bash
 python app.py
 ```
 
-The API will be available at `http://localhost:5000`
+5. Open in browser:
+http://127.0.0.1:5001
 
-### Frontend
+## 📱 Mobile Access
+1. Open https://diet-health-app.onrender.com on phone
+2. Tap menu (3 dots) → Add to Home Screen
+3. App installs like a native app!
 
-```bash
-cd frontend
+## 🔬 How It Works
+1. User registers and completes health profile
+2. User selects symptoms from interactive checklist
+3. Rule-based engine maps symptoms to deficiencies
+4. System generates personalized diet plan
+5. Daily routine created based on goals
+6. Browser notifications remind user of tasks
+7. Progress tracked daily
 
-# Install Flutter packages
-flutter pub get
+## 📋 API Endpoints
 
-# Run on web
-flutter run -d chrome
+### Authentication
+- POST /api/user/register
+- POST /api/user/login
+- POST /api/user/forgot-password
 
-# Run on Android (device/emulator must be connected)
-flutter run -d android
-```
+### Health Analysis
+- POST /api/health/analyze-health
+- GET /api/health/history/<user_id>
+- GET /api/health/latest/<user_id>
+
+### Diet
+- POST /api/diet/generate-diet
+- GET /api/diet/get-plan/<user_id>
+
+### Routine
+- POST /api/routine/generate-routine
+- GET /api/routine/get-routine/<user_id>
+
+### Progress
+- POST /api/progress/log
+- GET /api/progress/<user_id>
+
+### Reminders
+- POST /api/reminders/save
+- GET /api/reminders/<user_id>
+- POST /api/reminders/add-custom
+- DELETE /api/reminders/<reminder_id>
+
+## 👨💻 Developer
+- GitHub: @amarthya1
+
+## 📄 License
+MIT License
 
 ---
-
-## 🔗 API Endpoints
-
-| Method | Endpoint                        | Description                  |
-|--------|---------------------------------|------------------------------|
-| GET    | `/api/diet/meal-plan`           | Get personalized meal plan   |
-| POST   | `/api/diet/log-meal`            | Log a meal                   |
-| GET    | `/api/diet/food-search?q=...`   | Search food nutrition DB     |
-| POST   | `/api/health/bmi`               | Calculate BMI                |
-| POST   | `/api/health/tdee`              | Calculate TDEE               |
-| POST   | `/api/health/log-vitals`        | Log health vitals            |
-| POST   | `/api/user/register`            | Register user                |
-| POST   | `/api/user/login`               | Login user                   |
-| GET    | `/api/analysis/weekly-report/:id` | Weekly diet report         |
-| GET    | `/api/analysis/nutrient-gaps/:id` | Nutritional gap analysis   |
-| GET    | `/api/analysis/vitamin-check/:id` | Vitamin level check        |
-| GET    | `/api/analysis/ai-insights/:id`   | AI health insights         |
+Built with ❤️ for health and wellness

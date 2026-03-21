@@ -1,4 +1,4 @@
-/* === Diet & Health App - Core JS === */
+/* === NutriFlow - Core JS === */
 const BASE_URL = (() => {
     const hostname = window.location.hostname;
     

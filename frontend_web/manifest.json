@@ -1,6 +1,6 @@
 {
-    "name": "Diet & Health Advisor",
-    "short_name": "DietApp",
+    "name": "NutriFlow",
+    "short_name": "NutriFlow",
     "description": "Your personalized diet and health wellness advisor",
     "start_url": "/login.html",
     "display": "standalone",
