@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Profile - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+    <style>body{padding-top:3vh;padding-bottom:2rem;}</style>
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <div class="container fade-in" style="max-width:550px;">
+        <div class="card" style="padding:2rem;">
+            <h2 style="font-weight:800;margin-bottom:0.25rem;">Welcome, <span id="uname"></span>! 👋</h2>
+            <p class="text-muted text-sm mb-2">Let's set up your health profile</p>
+            <div class="step-bar" id="step-bar"></div>
+
+            <form id="ob-form">
+                <!-- Step 1 -->
+                <div class="ob-step" id="s1">
+                    <h3 class="font-bold mb-1">Personal Details</h3>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="25" min="10" max="120" required></div>
+                        <div class="form-group"><label>Gender</label><select id="gender" required><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Height (cm)</label><input type="number" id="height" placeholder="170" required></div>
+                        <div class="form-group"><label>Weight (kg)</label><input type="number" id="weight" placeholder="65" required></div>
+                    </div>
+                    <div id="bmi-preview" class="card" style="text-align:center;padding:0.75rem;display:none;"><span id="bmi-val" class="font-bold"></span> <span id="bmi-cat" class="tag"></span></div>
+                </div>
+                <!-- Step 2 -->
+                <div class="ob-step hidden" id="s2">
+                    <h3 class="font-bold mb-1">Food & Lifestyle</h3>
+                    <div class="form-group"><label>Food Preference</label><select id="food_pref"><option value="Veg">Vegetarian</option><option value="Non-Veg">Non-Vegetarian</option><option value="Vegan">Vegan</option></select></div>
+                    <div class="form-group"><label>Allergies</label>
+                        <div class="grid-3" id="allergy-grid"></div>
+                    </div>
+                    <div class="form-group"><label>Activity Level</label><select id="activity"><option value="sedentary">Sedentary</option><option value="light">Light</option><option value="moderate" selected>Moderate</option><option value="active">Active</option></select></div>
+                </div>
+                <!-- Step 3 -->
+                <div class="ob-step hidden" id="s3">
+                    <h3 class="font-bold mb-1">Health Goals</h3>
+                    <div class="form-group"><label>Primary Goal</label><select id="goals"><option value="Weight Loss">Weight Loss</option><option value="Muscle Gain">Muscle Gain</option><option value="General Health" selected>General Health</option><option value="Hair and Skin">Hair & Skin</option><option value="Energy Boost">Energy Boost</option><option value="Stress Relief">Stress Relief</option></select></div>
+                    <div class="form-group"><label>Target Weight (optional, kg)</label><input type="number" id="target-weight" placeholder="60"></div>
+                    <div class="form-group"><label>Medical Conditions (optional)</label>
+                        <div class="grid-2" id="condition-grid"></div>
+                    </div>
+                </div>
+                <!-- Step 4 -->
+                <div class="ob-step hidden" id="s4">
+                    <h3 class="font-bold mb-1">Medications</h3>
+                    <div class="form-group"><label>Current Medications (optional)</label><textarea id="medications" rows="3" placeholder="e.g. Metformin 500mg morning, Vitamin D 1000IU"></textarea></div>
+                    <div class="form-group"><label>Supplements</label><textarea id="supplements" rows="2" placeholder="e.g. Multivitamin, Omega 3"></textarea></div>
+                </div>
+
+                <div id="error-message" class="error-msg"></div>
+                <div class="flex gap-1 mt-2">
+                    <button type="button" id="prevBtn" class="btn btn-outline btn-full hidden">Back</button>
+                    <button type="button" id="nextBtn" class="btn btn-full">Next →</button>
+                    <button type="submit" id="finishBtn" class="btn btn-full hidden">Finish & Go Home 🎉</button>
+                </div>
+                <button type="button" id="skipBtn" class="btn btn-secondary btn-full btn-sm mt-1" style="opacity:0.6;">Skip for now</button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+    <script>
+    const STEPS=4; let cur=1;
+    const allergies=['Dairy','Nuts','Gluten','Eggs','Seafood','Soy','Lactose'];
+    const conditions=['Diabetes','High BP','Thyroid','PCOD','Heart Disease','Asthma'];
+    let selAllergies=new Set(), selConditions=new Set();
+
+    document.getElementById('uname').textContent=Auth.getUser().name||'';
+
+    // Build step bar
+    const sb=document.getElementById('step-bar');
+    for(let i=1;i<=STEPS;i++){const d=document.createElement('div');d.className='step-dot'+(i===1?' active':'');d.id='sd'+i;sb.appendChild(d);}
+
+    // Build allergy grid
+    const ag=document.getElementById('allergy-grid');
+    allergies.forEach(a=>{const d=document.createElement('div');d.className='symptom-card';d.textContent=a;d.onclick=()=>{d.classList.toggle('selected');selAllergies.has(a)?selAllergies.delete(a):selAllergies.add(a);};ag.appendChild(d);});
+
+    // Build condition grid
+    const cg=document.getElementById('condition-grid');
+    conditions.forEach(c=>{const d=document.createElement('div');d.className='symptom-card';d.textContent=c;d.onclick=()=>{d.classList.toggle('selected');selConditions.has(c)?selConditions.delete(c):selConditions.add(c);};cg.appendChild(d);});
+
+    // BMI preview
+    ['height','weight'].forEach(id=>{document.getElementById(id).oninput=()=>{
+        const h=parseFloat(document.getElementById('height').value);
+        const w=parseFloat(document.getElementById('weight').value);
+        if(h>0&&w>0){const b=calculateBMI(w,h);const c=getBMICategory(b);
+        document.getElementById('bmi-val').textContent='BMI: '+b;
+        const cat=document.getElementById('bmi-cat');cat.textContent=c.cat;cat.style.background=c.color+'20';cat.style.color=c.color;
+        document.getElementById('bmi-preview').style.display='block';}
+    };});
+
+    function showStep(n){
+        for(let i=1;i<=STEPS;i++){document.getElementById('s'+i).classList.toggle('hidden',i!==n);document.getElementById('sd'+i).className='step-dot'+(i<n?' done':'')+(i===n?' active':'');}
+        document.getElementById('prevBtn').classList.toggle('hidden',n===1);
+        document.getElementById('nextBtn').classList.toggle('hidden',n===STEPS);
+        document.getElementById('finishBtn').classList.toggle('hidden',n!==STEPS);
+    }
+
+    document.getElementById('nextBtn').onclick=()=>{if(cur<STEPS){cur++;showStep(cur);}};
+    document.getElementById('prevBtn').onclick=()=>{if(cur>1){cur--;showStep(cur);}};
+    document.getElementById('skipBtn').onclick=()=>window.location.href='home.html';
+
+    document.getElementById('ob-form').onsubmit=async(e)=>{
+        e.preventDefault();
+        const meds=document.getElementById('medications').value;
+        const supps=document.getElementById('supplements').value;
+        const allMeds=[meds,supps].filter(x=>x).join(', ');
+        try{
+            const r=await API.post('/user/onboarding',{
+                user_id:Auth.getUserId(),
+                age:parseInt(document.getElementById('age').value)||0,
+                gender:document.getElementById('gender').value,
+                height:parseFloat(document.getElementById('height').value)||0,
+                weight:parseFloat(document.getElementById('weight').value)||0,
+                food_preference:document.getElementById('food_pref').value,
+                allergies:JSON.stringify([...selAllergies]),
+                health_goals:document.getElementById('goals').value,
+                medications:allMeds,
+                activity_level:document.getElementById('activity').value,
+            });
+            if(r.success){
+                const u=Auth.getUser();
+                u.height=document.getElementById('height').value;
+                u.weight=document.getElementById('weight').value;
+                Auth.saveUser(u);
+                showToast('Profile saved!');
+                setTimeout(()=>window.location.href='home.html',500);
+            }
+        }catch(e){}
+    };
+    </script>
+</body>
+</html>

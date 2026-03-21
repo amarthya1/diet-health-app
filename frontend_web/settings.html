@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <header class="header">
+        <a href="home.html" class="logo">🌿 Diet & Health</a>
+        <nav class="nav-desktop"><a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a><a href="routine.html">Routine</a><a href="reminders.html">Reminders</a><a href="progress.html">Progress</a><a href="profile.html">Profile</a><button class="btn btn-outline btn-sm logout-btn">Logout</button></nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:1rem;">⚙️ Settings</h1>
+
+        <!-- Theme -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">🎨 Appearance</h3>
+            <div class="flex items-center justify-between">
+                <span class="text-sm">Dark Mode</span>
+                <label style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="theme-toggle" style="width:auto;" onchange="Theme.toggle()">
+                    <span class="text-sm" id="theme-label">Light</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">🔑 Change Password</h3>
+            <div class="form-group"><label>Current Password</label><input type="password" id="cur-pwd" placeholder="••••••••"></div>
+            <div class="form-group"><label>New Password</label><input type="password" id="new-pwd" placeholder="Min 6 characters" minlength="6"></div>
+            <div class="form-group"><label>Confirm New Password</label><input type="password" id="confirm-pwd" placeholder="••••••••"></div>
+            <button class="btn btn-full" onclick="changePwd()">Update Password</button>
+        </div>
+
+        <!-- Data & Privacy -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">🛡️ Data & Privacy</h3>
+            <button class="btn btn-outline btn-full mb-1" onclick="exportData()">📥 Export My Data</button>
+            <button class="btn btn-danger btn-full" onclick="if(confirm('Are you sure? This cannot be undone!')){showToast('Feature coming soon','warning');}">🗑️ Delete Account</button>
+        </div>
+
+        <!-- About -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">ℹ️ About</h3>
+            <div class="text-sm text-muted">
+                <p>Diet & Health Advisory System</p>
+                <p>Version 2.0.0</p>
+                <p style="margin-top:0.5rem;">Built with Flask + Vanilla JS</p>
+            </div>
+        </div>
+
+        <a href="profile.html" class="btn btn-outline btn-full mt-1" style="text-decoration:none;">← Back to Profile</a>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+    // Theme toggle
+    const tt=document.getElementById('theme-toggle');
+    const tl=document.getElementById('theme-label');
+    if(Theme.get()==='dark'){tt.checked=true;tl.textContent='Dark';}
+    tt.onchange=()=>{Theme.toggle();tl.textContent=Theme.get()==='dark'?'Dark':'Light';};
+
+    async function changePwd(){
+        const np=document.getElementById('new-pwd').value;
+        const cp=document.getElementById('confirm-pwd').value;
+        if(np!==cp){showToast("Passwords don't match",'error');return;}
+        if(np.length<6){showToast("Password must be 6+ characters",'error');return;}
+        showToast("Password update coming soon","warning");
+    }
+
+    function exportData(){
+        const user=Auth.getUser();
+        const blob=new Blob([JSON.stringify(user,null,2)],{type:'application/json'});
+        const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+        a.download='diet-health-data.json';a.click();
+        showToast('Data exported!');
+    }
+    </script>
+</body>
+</html>

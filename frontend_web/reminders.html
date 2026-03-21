@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reminders - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .reminder-card { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--border); }
+        .reminder-card:last-child { border-bottom: none; }
+        .reminder-info { flex: 1; display: flex; align-items: center; gap: 0.75rem; }
+        .reminder-icon { font-size: 1.5rem; background: var(--bg); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .time-input { padding: 0.25rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; }
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface); padding: 1.5rem; border-radius: var(--radius-lg); width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
+        .banner { background: #fee2e2; color: #991b1b; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;}
+        [data-theme="dark"] .banner { background: #7f1d1d; color: #fecaca; }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    
+    <header class="header">
+        <a href="home.html" class="logo">🌿</a>
+        <nav class="nav-desktop">
+            <a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a><a href="routine.html">Routine</a><a href="reminders.html" class="active">Reminders</a><a href="profile.html">Profile</a><button class="btn btn-outline btn-sm logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <div id="permission-banner" class="banner fade-in" style="display:none;">
+            <div><strong>⚠️ Notifications disabled</strong><br><small>Enable notifications to receive your health reminders.</small></div>
+            <button class="btn btn-sm" onclick="enableNotifications()">Enable Notifications</button>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+            <div>
+                <a href="profile.html" style="text-decoration:none;font-size:0.9rem;color:var(--text);opacity:0.7;">← Back</a>
+                <h1 style="font-size:1.3rem;font-weight:800;margin-top:0.25rem;">⏰ My Reminders</h1>
+            </div>
+            <button class="btn btn-sm btn-success" onclick="openModal()">+ Add Reminder</button>
+        </div>
+
+        <!-- Default Reminders -->
+        <div class="card mb-2 fade-in">
+            <h3 class="font-bold mb-1">Daily Reminders</h3>
+            <div id="default-reminders-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- Medications -->
+        <div class="card mb-2 fade-in">
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="font-bold">Medicine Reminders 💊</h3>
+                <a href="onboarding.html" class="btn btn-outline btn-sm" style="text-decoration:none;">Add Medicine</a>
+            </div>
+            <div id="medication-list"></div>
+        </div>
+
+        <!-- Custom Reminders -->
+        <div class="card mb-2 fade-in">
+            <h3 class="font-bold mb-1">Custom Reminders</h3>
+            <div id="custom-reminders-list"></div>
+            <button class="btn btn-outline btn-full mt-1" onclick="openModal()">+ Add Custom Reminder</button>
+        </div>
+    </div>
+
+    <!-- Add Reminder Modal -->
+    <div class="modal" id="add-modal">
+        <div class="modal-content fade-in">
+            <h3 class="font-bold mb-1">Add Custom Reminder</h3>
+            <div class="form-group">
+                <label>Title (What to remind?)</label>
+                <input type="text" id="rm-title" placeholder="e.g. Drink Green Tea" required>
+            </div>
+            <div class="form-group">
+                <label>Message Focus</label>
+                <input type="text" id="rm-body" placeholder="e.g. Take a 5 min break to sip tea" required>
+            </div>
+            <div class="form-group">
+                <label>Time of Day</label>
+                <input type="time" id="rm-time" required>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="rm-category">
+                    <option value="water">💧 Water</option>
+                    <option value="food">🥗 Food</option>
+                    <option value="medicine">💊 Medicine</option>
+                    <option value="exercise">💪 Exercise</option>
+                    <option value="other">🔔 Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Repeat Pattern</label>
+                <select id="rm-repeat">
+                    <option value="daily">Daily</option>
+                    <option value="once">Once</option>
+                    <option value="weekdays">Weekdays Only</option>
+                    <option value="weekends">Weekends Only</option>
+                </select>
+            </div>
+            <div class="flex gap-1 mt-2">
+                <button class="btn btn-full" onclick="saveCustomReminder()">Save</button>
+                <button class="btn btn-outline btn-full" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script src="notifications.js"></script>
+    <script>
+    const defaultTemplates = [
+        { id: "wake_water", icon: "🌅", title: "Wake Up & Drink Water", key: "wake_time", defTime: "07:00" },
+        { id: "breakfast", icon: "🍳", title: "Breakfast Reminder", key: "breakfast_time", defTime: "08:00" },
+        { id: "water_morning", icon: "💧", title: "Morning Water", key: null, defTime: "10:00" },
+        { id: "lunch", icon: "🥗", title: "Lunch Reminder", key: "lunch_time", defTime: "13:00" },
+        { id: "water_afternoon", icon: "💧", title: "Afternoon Water", key: null, defTime: "15:00" },
+        { id: "snack", icon: "🍎", title: "Snack Reminder", key: null, defTime: "16:00" },
+        { id: "exercise", icon: "💪", title: "Exercise Reminder", key: "exercise_time", defTime: "17:00" },
+        { id: "dinner", icon: "🍽️", title: "Dinner Reminder", key: "dinner_time", defTime: "19:00" },
+        { id: "water_evening", icon: "💧", title: "Evening Water", key: null, defTime: "20:00" },
+        { id: "sleep", icon: "😴", title: "Sleep Reminder", key: "sleep_time", defTime: "22:00" }
+    ];
+
+    let userRoutine = JSON.parse(localStorage.getItem("userRoutine") || "null");
+    let userMeds = JSON.parse(localStorage.getItem("userMedications") || "[]");
+    let customRems = JSON.parse(localStorage.getItem("customReminders") || "[]");
+    let activePrefs = JSON.parse(localStorage.getItem("reminderPrefs") || "{}"); // Track toggles
+
+    function renderDefault() {
+        const c = document.getElementById('default-reminders-list');
+        let html = '';
+        defaultTemplates.forEach(t => {
+            let tTime = t.defTime;
+            if (t.key && userRoutine && userRoutine[t.key]) tTime = userRoutine[t.key];
+            const isOn = activePrefs[t.id] !== false; // Default true
+            html += `
+                <div class="reminder-card">
+                    <div class="reminder-info">
+                        <div class="reminder-icon">${t.icon}</div>
+                        <div class="font-bold text-sm">${t.title}</div>
+                    </div>
+                    <input type="time" class="time-input" id="time_${t.id}" value="${tTime}" onchange="updatePref('${t.id}')">
+                    <label class="toggle-switch ml-1">
+                        <input type="checkbox" id="toggle_${t.id}" ${isOn ? 'checked' : ''} onchange="updatePref('${t.id}')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            `;
+        });
+        c.innerHTML = html;
+    }
+
+    function renderMeds() {
+        const c = document.getElementById('medication-list');
+        if (!userMeds || userMeds.length === 0) {
+            c.innerHTML = '<p class="text-sm text-muted">No medications listed in your profile.</p>';
+            return;
+        }
+        let html = '';
+        userMeds.forEach((m, i) => {
+            const mId = 'med_' + i;
+            const isOn = activePrefs[mId] !== false;
+            html += `
+                <div class="reminder-card">
+                    <div class="reminder-info">
+                        <div class="reminder-icon">💊</div>
+                        <div class="font-bold text-sm">${m.name}</div>
+                    </div>
+                    <input type="time" class="time-input" id="time_${mId}" value="${m.time || '09:00'}" onchange="updateMedTime(${i}, this.value)">
+                    <label class="toggle-switch ml-1">
+                        <input type="checkbox" id="toggle_${mId}" ${isOn ? 'checked' : ''} onchange="updatePref('${mId}')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            `;
+        });
+        c.innerHTML = html;
+    }
+
+    function renderCustom() {
+        const c = document.getElementById('custom-reminders-list');
+        if (!customRems || customRems.length === 0) {
+            c.innerHTML = '<p class="text-sm text-muted">No custom reminders yet.</p>';
+            return;
+        }
+        let html = '';
+        customRems.forEach((cr, i) => {
+            const isOn = cr.active !== false;
+            html += `
+                <div class="reminder-card">
+                    <div class="reminder-info">
+                        <div class="reminder-icon">${cr.category === 'water'?'💧':cr.category==='food'?'🥗':'🔔'}</div>
+                        <div>
+                            <div class="font-bold text-sm">${cr.title}</div>
+                            <div class="text-xs text-muted">${cr.repeat}</div>
+                        </div>
+                    </div>
+                    <input type="time" class="time-input" value="${cr.time}" onchange="updateCustomTime(${i}, this.value)">
+                    <label class="toggle-switch mx-1">
+                        <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleCustom(${i})">
+                        <span class="slider"></span>
+                    </label>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCustom(${i})">🗑️</button>
+                </div>
+            `;
+        });
+        c.innerHTML = html;
+    }
+
+    function checkPermissions() {
+        if ("Notification" in window) {
+            if (Notification.permission === "denied" || Notification.permission === "default") {
+                document.getElementById("permission-banner").style.display = "flex";
+            } else {
+                document.getElementById("permission-banner").style.display = "none";
+            }
+        }
+    }
+
+    function enableNotifications() {
+        requestNotificationPermission();
+        setTimeout(checkPermissions, 1000);
+    }
+
+    function updatePref(id) {
+        const timeVal = document.getElementById(`time_${id}`).value;
+        const isOn = document.getElementById(`toggle_${id}`).checked;
+        activePrefs[id] = { active: isOn, time: timeVal };
+        localStorage.setItem("reminderPrefs", JSON.stringify(activePrefs));
+        scheduleAllReminders();
+        saveToServer();
+    }
+
+    function updateMedTime(index, time) {
+        userMeds[index].time = time;
+        localStorage.setItem("userMedications", JSON.stringify(userMeds));
+        updatePref('med_' + index);
+    }
+
+    function toggleCustom(index) {
+        customRems[index].active = !customRems[index].active;
+        localStorage.setItem("customReminders", JSON.stringify(customRems));
+        scheduleAllReminders();
+        saveToServer();
+        renderCustom();
+    }
+
+    function updateCustomTime(index, time) {
+        customRems[index].time = time;
+        localStorage.setItem("customReminders", JSON.stringify(customRems));
+        scheduleAllReminders();
+        saveToServer();
+    }
+
+    async function deleteCustom(index) {
+        if (!confirm("Delete this reminder?")) return;
+        const rm = customRems[index];
+        customRems.splice(index, 1);
+        localStorage.setItem("customReminders", JSON.stringify(customRems));
+        renderCustom();
+        scheduleAllReminders();
+        if (rm.backend_id) {
+            await API.delete(`/reminders/${rm.backend_id}`);
+        }
+    }
+
+    function openModal() { document.getElementById('add-modal').classList.add('active'); }
+    function closeModal() { document.getElementById('add-modal').classList.remove('active'); }
+
+    async function saveCustomReminder() {
+        const title = document.getElementById('rm-title').value;
+        const body = document.getElementById('rm-body').value;
+        const time = document.getElementById('rm-time').value;
+        const cat = document.getElementById('rm-category').value;
+        const repeat = document.getElementById('rm-repeat').value;
+        if (!title || !time) { showToast("Title and time required","error"); return; }
+        
+        const payload = { user_id: Auth.getUserId(), title, body, time, repeat, category: cat };
+        closeModal();
+        try {
+            const res = await API.post('/routine/reminders/add-custom', payload);
+            if (res.success || res.status === "success") {
+                customRems.push({ ...payload, backend_id: res.reminder_id, active: true });
+                localStorage.setItem("customReminders", JSON.stringify(customRems));
+                renderCustom();
+                scheduleAllReminders();
+                showToast("Reminder added!");
+            }
+        } catch(e) {}
+    }
+
+    async function saveToServer() {
+        // Collect all active preferences to sync to backend
+        const allRems = [];
+        defaultTemplates.forEach(t => {
+            const pref = activePrefs[t.id];
+            if (pref && pref.active) {
+                allRems.push({ title: t.title, body: "It's time!", time: pref.time, category: 'routine', repeat: 'daily' });
+            } else if (!pref) {
+                // If unset, default is active
+                let tTime = t.defTime;
+                if (t.key && userRoutine && userRoutine[t.key]) tTime = userRoutine[t.key];
+                allRems.push({ title: t.title, body: "It's time!", time: tTime, category: 'routine', repeat: 'daily' });
+            }
+        });
+        try {
+            await API.post('/routine/reminders/save', { user_id: Auth.getUserId(), reminders: allRems });
+        } catch(e) {}
+    }
+
+    async function initialLoad() {
+        checkPermissions();
+        // Load meds from backend profile if not present
+        if (userMeds.length === 0) {
+            try {
+                const p = await API.get('/user/profile/' + Auth.getUserId());
+                if (p && p.medications) {
+                    const parsed = p.medications.split(',').map(m => m.trim()).filter(Boolean).map(m => {
+                        let obj = {name: m, time: "09:00"};
+                        if (m.toLowerCase().includes('morning')) obj.time = "08:00";
+                        if (m.toLowerCase().includes('night')) obj.time = "21:00";
+                        return obj;
+                    });
+                    userMeds = parsed;
+                    localStorage.setItem("userMedications", JSON.stringify(parsed));
+                }
+            } catch(e) {}
+        }
+        
+        // Fetch custom from backend
+        try {
+            const bRems = await API.get('/routine/reminders/' + Auth.getUserId());
+            if (bRems && Array.isArray(bRems)) {
+                // only keep backend ones labeled as custom 'other', etc or maybe all of them? 
+                // We stored defaults above as 'routine' category in saveToServer.
+                const customs = bRems.filter(r => r.category !== 'routine');
+                customRems = customs.map(c => ({
+                    backend_id: c.id, title: c.title, body: c.body, time: c.reminder_time, 
+                    repeat: c.repeat_type, category: c.category, active: c.is_active === 1
+                }));
+                localStorage.setItem("customReminders", JSON.stringify(customRems));
+            }
+        } catch(e) {}
+        
+        renderDefault();
+        renderMeds();
+        renderCustom();
+    }
+
+    initialLoad();
+    </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routine - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <header class="header">
+        <a href="home.html" class="logo">🌿 Diet & Health</a>
+        <nav class="nav-desktop"><a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a><a href="routine.html">Routine</a><a href="reminders.html">Reminders</a><a href="progress.html">Progress</a><a href="profile.html">Profile</a><button class="btn btn-outline btn-sm logout-btn">Logout</button></nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <div class="flex items-center justify-between mb-1">
+            <div>
+                <h1 style="font-size:1.3rem;font-weight:800;">📅 My Routine</h1>
+                <p class="text-xs text-muted" id="today-date"></p>
+            </div>
+            <button class="btn btn-sm" onclick="genRoutine()">Regenerate</button>
+        </div>
+
+        <!-- Generate Form (shown if no routine) -->
+        <div id="gen-form" class="card hidden">
+            <h3 class="font-bold mb-1">Set Up Your Routine</h3>
+            <div class="grid-2">
+                <div class="form-group"><label>Wake Time</label><input type="time" id="wake" value="07:00"></div>
+                <div class="form-group"><label>Sleep Time</label><input type="time" id="sleep" value="23:00"></div>
+            </div>
+            <button class="btn btn-full" onclick="genRoutine()">Generate Routine</button>
+        </div>
+
+        <!-- Timeline -->
+        <div id="routine-content"></div>
+
+        <!-- Exercise Plan -->
+        <div id="exercise-section" class="card hidden">
+            <h3 class="font-bold mb-1">🏋️ Weekly Exercise Plan</h3>
+            <div id="exercise-list"></div>
+        </div>
+
+        <!-- Medications -->
+        <div id="meds-section" class="card hidden">
+            <h3 class="font-bold mb-1">💊 Medications</h3>
+            <div id="meds-list"></div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+    document.getElementById('today-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    function renderRoutine(data){
+        document.getElementById('gen-form').classList.add('hidden');
+        const blocks=[
+            {key:'morning',label:'🌅 Morning',items:data.morning||[]},
+            {key:'afternoon',label:'☀️ Afternoon',items:data.afternoon||[]},
+            {key:'evening',label:'🌆 Evening',items:data.evening||[]},
+            {key:'night',label:'🌙 Night',items:data.night||[]}
+        ];
+        let html='';
+        blocks.forEach(b=>{
+            html+=`<div class="section-header"><span class="section-title">${b.label}</span></div><div class="timeline">`;
+            b.items.forEach(item=>{
+                html+=`<div class="timeline-item${item.done?' done':''}">
+                    <div class="timeline-dot"></div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-muted font-bold">${item.time||''}</div>
+                            <div class="text-sm">${item.icon||''} ${item.activity||''}</div>
+                        </div>
+                        <div class="check-btn${item.done?' checked':''}" onclick="this.classList.toggle('checked')">✓</div>
+                    </div>
+                </div>`;
+            });
+            html+=`</div>`;
+        });
+        document.getElementById('routine-content').innerHTML=html;
+
+        // Exercise
+        if(data.exercise_plan&&Object.keys(data.exercise_plan).length){
+            document.getElementById('exercise-section').classList.remove('hidden');
+            let eh='';
+            for(const[day,ex] of Object.entries(data.exercise_plan)){
+                eh+=`<div class="meal-card"><div class="meal-icon" style="background:#DBEAFE;font-size:0.7rem;font-weight:700;">${day.slice(0,3)}</div><div class="text-sm">${ex}</div></div>`;
+            }
+            document.getElementById('exercise-list').innerHTML=eh;
+        }
+
+        // Medications
+        if(data.medications&&data.medications.length){
+            document.getElementById('meds-section').classList.remove('hidden');
+            let mh='';
+            data.medications.forEach(m=>{
+                mh+=`<div class="meal-card"><div class="meal-icon" style="background:#FCE7F3;">💊</div><div class="flex-1"><div class="text-sm font-bold">${m.name||''}</div><div class="text-xs text-muted">${m.time||''}</div></div><div class="check-btn${m.taken?' checked':''}" onclick="this.classList.toggle('checked')">✓</div></div>`;
+            });
+            document.getElementById('meds-list').innerHTML=mh;
+        }
+    }
+
+    async function genRoutine(){
+        const u=Auth.getUser();
+        try{
+            const r=await API.post('/routine/generate-routine',{
+                user_id:Auth.getUserId(),
+                wake_time:document.getElementById('wake').value||'07:00',
+                sleep_time:document.getElementById('sleep').value||'23:00',
+                goal:u.health_goals||'General Health',
+                activity_level:u.activity_level||'moderate',
+                medications:u.medications||''
+            });
+            if(!r.error){
+                renderRoutine(r);
+                RemindersSync.afterRoutineGenerated(r);
+                showToast('Routine generated!');
+            }
+        }catch(e){}
+    }
+
+    // Load existing
+    (async()=>{
+        try{
+            const r=await API.get('/routine/get-routine/'+Auth.getUserId());
+            if(r&&r.morning){renderRoutine(r);if(r.wake_time)document.getElementById('wake').value=r.wake_time;if(r.sleep_time)document.getElementById('sleep').value=r.sleep_time;}
+            else{document.getElementById('gen-form').classList.remove('hidden');document.getElementById('routine-content').innerHTML='';}
+        }catch(e){document.getElementById('gen-form').classList.remove('hidden');}
+    })();
+    </script>
+</body>
+</html>

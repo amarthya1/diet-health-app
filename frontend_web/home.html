@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <!-- Header -->
+    <header class="header">
+        <a href="home.html" class="logo">🌿 Diet & Health</a>
+        <nav class="nav-desktop">
+            <a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a>
+            <a href="routine.html">Routine</a><a href="reminders.html">Reminders</a><a href="progress.html">Progress</a><a href="profile.html">Profile</a>
+            <button class="btn btn-outline btn-sm logout-btn">Logout</button>
+        </nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <!-- Greeting -->
+        <div class="flex items-center gap-1 mb-2 fade-in">
+            <div class="avatar" id="avatar"></div>
+            <div>
+                <h2 style="font-size:1.2rem;font-weight:800;" id="greeting"></h2>
+                <p class="text-sm text-muted" id="sub-greeting"></p>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid-4 mb-2 slide-up">
+            <div class="card text-center" style="padding:1rem;">
+                <div style="font-size:1.5rem;">🔥</div>
+                <div class="font-bold" id="cal-display">--</div>
+                <div class="text-xs text-muted">Calories</div>
+            </div>
+            <div class="card text-center" style="padding:1rem;">
+                <div style="font-size:1.5rem;">💧</div>
+                <div class="font-bold" id="water-display">0/8</div>
+                <div class="text-xs text-muted">Water</div>
+            </div>
+            <div class="card text-center" style="padding:1rem;">
+                <div style="font-size:1.5rem;">🏃</div>
+                <div class="font-bold" id="exercise-display">—</div>
+                <div class="text-xs text-muted">Exercise</div>
+            </div>
+            <div class="card text-center" style="padding:1rem;">
+                <div style="font-size:1.5rem;">❤️</div>
+                <div class="font-bold" id="score-display">--</div>
+                <div class="text-xs text-muted">Health Score</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section-header"><span class="section-title">Quick Actions</span></div>
+        <div class="grid-4 mb-2">
+            <a href="analysis.html" class="action-card fade-in">
+                <div class="action-icon" style="background:#DBEAFE;">🔍</div>
+                <span class="text-sm font-bold">Analyze</span>
+            </a>
+            <a href="diet.html" class="action-card fade-in">
+                <div class="action-icon" style="background:#D1FAE5;">🥗</div>
+                <span class="text-sm font-bold">Diet Plan</span>
+            </a>
+            <a href="routine.html" class="action-card fade-in">
+                <div class="action-icon" style="background:#FEF3C7;">📅</div>
+                <span class="text-sm font-bold">Routine</span>
+            </a>
+            <a href="progress.html" class="action-card fade-in">
+                <div class="action-icon" style="background:#FCE7F3;">📊</div>
+                <span class="text-sm font-bold">Progress</span>
+            </a>
+        </div>
+
+        <!-- Latest Analysis -->
+        <div class="section-header"><span class="section-title">Health Status</span><a href="analysis.html" class="section-link">View Details →</a></div>
+        <div class="card fade-in" id="analysis-card">
+            <p class="text-muted text-sm">Loading health status...</p>
+        </div>
+
+        <!-- Health Tips -->
+        <div class="section-header"><span class="section-title">💡 Health Tips</span></div>
+        <div class="card fade-in" id="tips-card">
+            <div id="tip-content" class="text-sm"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+    const user = Auth.getUser();
+    document.getElementById('avatar').textContent = getInitials(user.name);
+    document.getElementById('greeting').textContent = `${getGreeting()}, ${user.name||'User'}! 👋`;
+    document.getElementById('sub-greeting').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+
+    const tips = [
+        "🥤 Start your day with warm water and lemon for better digestion.",
+        "🌅 Get 15 minutes of morning sunlight for Vitamin D.",
+        "🥬 Eat dark leafy greens daily for Iron and Folate.",
+        "💧 Aim for 8 glasses of water - set hourly reminders!",
+        "🏃 Just 30 minutes of walking daily reduces heart disease risk by 30%.",
+        "😴 Sleep 7-8 hours. Poor sleep increases cortisol and weight gain.",
+        "🥜 A handful of nuts daily provides essential Omega 3 and Magnesium."
+    ];
+    document.getElementById('tip-content').textContent = tips[new Date().getDay()];
+
+    // Fetch data
+    (async()=>{
+        const uid = Auth.getUserId();
+        try {
+            // Health Score
+            const hs = await API.get('/analysis/health-score/'+uid).catch(()=>null);
+            if(hs && hs.health_score !== undefined) {
+                document.getElementById('score-display').textContent = hs.health_score;
+                document.getElementById('score-display').style.color = hs.health_score>=70?'var(--success)':hs.health_score>=40?'var(--warning)':'var(--error)';
+            }
+            // Latest analysis
+            const la = await API.get('/health/latest/'+uid).catch(()=>null);
+            const ac = document.getElementById('analysis-card');
+            if(la && la.bmi) {
+                const sev = la.urgency_level==='high'?'danger':la.urgency_level==='medium'?'warning':'success';
+                ac.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold">BMI: ${la.bmi} (${la.bmi_category})</span>
+                        <span class="badge badge-${sev}">${la.urgency_level.toUpperCase()}</span>
+                    </div>
+                    <p class="text-sm text-muted">${la.health_condition}</p>
+                    ${la.see_doctor?'<div class="alert alert-danger mt-1"><strong>⚠️ Doctor visit recommended:</strong> '+la.see_doctor_reason+'</div>':''}
+                    <div class="mt-1">${(la.deficiencies||[]).slice(0,4).map(d=>`<span class="tag tag-${d.severity==='severe'?'red':d.severity==='moderate'?'orange':'green'}">${d.name}</span>`).join('')}</div>
+                `;
+            } else {
+                ac.innerHTML = '<p class="text-muted text-sm">No analysis yet. <a href="analysis.html" style="color:var(--primary);font-weight:700;">Do your first analysis →</a></p>';
+            }
+            // Progress
+            const prog = await API.get('/progress/weekly/'+uid).catch(()=>null);
+            if(prog) {
+                document.getElementById('water-display').textContent = (prog.total_water||0)+'/56';
+                document.getElementById('exercise-display').textContent = (prog.exercise_days||0)+'/7';
+            }
+        } catch(e){}
+    })();
+    </script>
+</body>
+</html>

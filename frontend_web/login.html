@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Diet & Health</title>
+    <meta name="description" content="Login to your personalized Diet & Health wellness advisor">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem;padding-bottom:1rem;}</style>
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <div class="container fade-in" style="max-width:420px;">
+        <div class="card" style="text-align:center;padding:2rem;">
+            <div style="font-size:2.5rem;margin-bottom:0.5rem;">🌿</div>
+            <h1 style="font-size:1.5rem;font-weight:800;margin-bottom:0.25rem;">Diet & Health</h1>
+            <p class="text-muted text-sm" style="margin-bottom:1.75rem;">Your personalized wellness advisor</p>
+            <form id="login-form" style="text-align:left;">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="name@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div style="position:relative;">
+                        <input type="password" id="password" placeholder="••••••••" required>
+                        <span id="toggle-pwd" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.1rem;">👁️</span>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;margin:0;cursor:pointer;">
+                        <input type="checkbox" id="remember" style="width:auto;"> Remember me
+                    </label>
+                    <a href="forgot-password.html" style="font-size:0.8rem;color:var(--primary);font-weight:600;text-decoration:none;">Forgot?</a>
+                </div>
+                <div id="error-message" class="error-msg"></div>
+                <button type="submit" class="btn btn-full" style="margin-top:0.5rem;">Login</button>
+            </form>
+            <div class="divider"></div>
+            <a href="register.html" class="btn btn-outline btn-full">Create New Account</a>
+        </div>
+        <p class="text-center text-xs text-muted" style="margin-top:0.5rem;">© 2026 Diet & Health Advisory System</p>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('toggle-pwd').onclick = function(){
+            const p = document.getElementById('password');
+            p.type = p.type==='password'?'text':'password';
+            this.textContent = p.type==='password'?'👁️':'🙈';
+        };
+        document.getElementById('login-form').onsubmit = async(e)=>{
+            e.preventDefault();
+            try {
+                const r = await API.post('/user/login',{
+                    email:document.getElementById('email').value,
+                    password:document.getElementById('password').value
+                });
+                if(r.success){
+                    Auth.saveUser(r.user);
+                    RemindersSync.afterLogin();
+                    showToast('Welcome back, '+r.user.name+'!');
+                    setTimeout(()=> window.location.href = r.user.height ? 'home.html' : 'onboarding.html', 500);
+                }
+            } catch(e){}
+        };
+        // Check for registration success
+        if(location.search.includes('registered')) showToast('Registration successful! Please login.');
+    </script>
+</body>
+</html>

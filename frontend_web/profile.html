@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <header class="header">
+        <a href="home.html" class="logo">🌿 Diet & Health</a>
+        <nav class="nav-desktop"><a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a><a href="routine.html">Routine</a><a href="reminders.html">Reminders</a><a href="progress.html">Progress</a><a href="profile.html">Profile</a><button class="btn btn-outline btn-sm logout-btn">Logout</button></nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <!-- Profile Header -->
+        <div class="card text-center fade-in">
+            <div class="avatar avatar-lg" id="avatar" style="margin:0 auto 1rem;"></div>
+            <h2 class="font-bold" id="p-name">---</h2>
+            <p class="text-sm text-muted" id="p-email">---</p>
+            <p class="text-xs text-muted mt-1" id="p-since"></p>
+            <button class="btn btn-outline btn-sm mt-1" onclick="toggleEdit()">✏️ Edit Profile</button>
+        </div>
+
+        <!-- Health Summary -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">Health Summary</h3>
+            <div class="grid-3" id="summary-grid">
+                <div class="text-center"><div class="text-xs text-muted">BMI</div><div class="font-bold" id="p-bmi">--</div></div>
+                <div class="text-center"><div class="text-xs text-muted">Height</div><div class="font-bold" id="p-height">--</div></div>
+                <div class="text-center"><div class="text-xs text-muted">Weight</div><div class="font-bold" id="p-weight">--</div></div>
+            </div>
+            <div class="divider"></div>
+            <div class="grid-2">
+                <div><span class="text-xs text-muted">Food Preference</span><div class="text-sm font-bold" id="p-food">--</div></div>
+                <div><span class="text-xs text-muted">Health Goal</span><div class="text-sm font-bold" id="p-goal">--</div></div>
+            </div>
+        </div>
+
+        <!-- Edit Form (hidden) -->
+        <div class="card hidden" id="edit-form">
+            <h3 class="font-bold mb-1">Edit Profile</h3>
+            <div class="grid-2">
+                <div class="form-group"><label>Name</label><input type="text" id="e-name"></div>
+                <div class="form-group"><label>Age</label><input type="number" id="e-age"></div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label>Gender</label><select id="e-gender"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                <div class="form-group"><label>Activity Level</label><select id="e-activity"><option value="sedentary">Sedentary</option><option value="light">Light</option><option value="moderate">Moderate</option><option value="active">Active</option></select></div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label>Height (cm)</label><input type="number" id="e-height"></div>
+                <div class="form-group"><label>Weight (kg)</label><input type="number" id="e-weight"></div>
+            </div>
+            <div class="form-group"><label>Food Preference</label><select id="e-food"><option value="Veg">Vegetarian</option><option value="Non-Veg">Non-Veg</option><option value="Vegan">Vegan</option></select></div>
+            <div class="form-group"><label>Health Goals</label><select id="e-goals"><option value="Weight Loss">Weight Loss</option><option value="Muscle Gain">Muscle Gain</option><option value="General Health">General Health</option></select></div>
+            <div class="form-group"><label>Allergies</label><input type="text" id="e-allergies" placeholder="Dairy, Nuts, Gluten"></div>
+            <div id="error-message" class="error-msg"></div>
+            <div class="flex gap-1">
+                <button class="btn btn-full" onclick="saveProfile()">Save Changes</button>
+                <button class="btn btn-outline btn-full" onclick="toggleEdit()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Recent Analysis -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">Recent Analysis</h3>
+            <div id="history-list" class="text-muted text-sm">Loading...</div>
+        </div>
+
+        <!-- Account Actions -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">Account</h3>
+            <button class="btn btn-outline btn-full mb-1" onclick="Auth.logout()">🚪 Logout</button>
+            <a href="settings.html" class="btn btn-outline btn-full" style="text-decoration:none;">⚙️ Settings</a>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+    let profile=null;
+
+    function toggleEdit(){document.getElementById('edit-form').classList.toggle('hidden');}
+
+    function fill(p){
+        profile=p;
+        document.getElementById('avatar').textContent=getInitials(p.name);
+        document.getElementById('p-name').textContent=p.name||'--';
+        document.getElementById('p-email').textContent=p.email||'--';
+        if(p.created_at)document.getElementById('p-since').textContent='Member since '+formatDate(p.created_at);
+        document.getElementById('p-height').textContent=(p.height||'--')+' cm';
+        document.getElementById('p-weight').textContent=(p.weight||'--')+' kg';
+        document.getElementById('p-food').textContent=p.food_preference||'--';
+        document.getElementById('p-goal').textContent=p.health_goals||'--';
+        if(p.height&&p.weight){
+            const b=calculateBMI(p.weight,p.height);
+            document.getElementById('p-bmi').textContent=b;
+        }
+        // Fill edit form
+        document.getElementById('e-name').value=p.name||'';
+        document.getElementById('e-age').value=p.age||'';
+        document.getElementById('e-gender').value=p.gender||'Male';
+        document.getElementById('e-height').value=p.height||'';
+        document.getElementById('e-weight').value=p.weight||'';
+        document.getElementById('e-food').value=p.food_preference||'Veg';
+        document.getElementById('e-goals').value=p.health_goals||'General Health';
+        document.getElementById('e-activity').value=p.activity_level||'moderate';
+        document.getElementById('e-allergies').value=p.allergies||'';
+    }
+
+    async function saveProfile(){
+        try{
+            const payload = {
+                name:document.getElementById('e-name').value,
+                age:parseInt(document.getElementById('e-age').value)||null,
+                gender:document.getElementById('e-gender').value,
+                height:parseFloat(document.getElementById('e-height').value)||null,
+                weight:parseFloat(document.getElementById('e-weight').value)||null,
+                food_preference:document.getElementById('e-food').value,
+                health_goals:document.getElementById('e-goals').value,
+                activity_level:document.getElementById('e-activity').value,
+                allergies:document.getElementById('e-allergies').value,
+                medications:document.getElementById('e-medications') ? document.getElementById('e-medications').value : ''
+            };
+            const r=await API.put('/user/profile/'+Auth.getUserId(), payload);
+            if(r.success){
+                RemindersSync.afterProfileUpdate(payload);
+                showToast('Profile updated!');
+                toggleEdit();
+                loadProfile();
+            }
+        }catch(e){}
+    }
+
+    async function loadProfile(){
+        try{
+            const p=await API.get('/user/profile/'+Auth.getUserId());
+            if(p&&p.id)fill(p);
+        }catch(e){}
+    }
+
+    // Load history
+    async function loadHistory(){
+        try{
+            const h=await API.get('/health/history/'+Auth.getUserId());
+            const hl=document.getElementById('history-list');
+            if(h&&h.length){
+                hl.innerHTML=h.slice(0,3).map(a=>`
+                    <div class="meal-card">
+                        <div class="meal-icon" style="background:${a.urgency_level==='high'?'#FEE2E2':a.urgency_level==='medium'?'#FEF3C7':'#D1FAE5'};">
+                            ${a.health_score>=70?'✅':a.health_score>=40?'⚠️':'❌'}
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-bold">Score: ${a.health_score}/100 • BMI: ${a.bmi}</div>
+                            <div class="text-xs text-muted">${formatDate(a.created_at)}</div>
+                        </div>
+                    </div>`).join('');
+            } else { hl.textContent='No analysis history yet.'; }
+        }catch(e){document.getElementById('history-list').textContent='No analysis history.';}
+    }
+
+    loadProfile();
+    loadHistory();
+    </script>
+</body>
+</html>

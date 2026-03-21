@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <header class="header">
+        <a href="home.html" class="logo">🌿 Diet & Health</a>
+        <nav class="nav-desktop"><a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a><a href="routine.html">Routine</a><a href="reminders.html">Reminders</a><a href="progress.html">Progress</a><a href="profile.html">Profile</a><button class="btn btn-outline btn-sm logout-btn">Logout</button></nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:1rem;">📊 Daily Progress</h1>
+
+        <!-- Today's Log -->
+        <div class="card fade-in">
+            <h3 class="font-bold mb-1">Today's Log</h3>
+            <div class="form-group">
+                <label>💧 Water Intake</label>
+                <div class="flex gap-1" id="water-row" style="flex-wrap:wrap;"></div>
+                <span class="text-xs text-muted" id="water-count">0 / 8 glasses</span>
+            </div>
+            <div class="form-group">
+                <label>🏃 Exercise</label>
+                <div class="flex gap-1">
+                    <button class="btn btn-sm" id="exYes" onclick="setEx(1)">✅ Done</button>
+                    <button class="btn btn-outline btn-sm" id="exNo" onclick="setEx(0)">❌ Not Today</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>😊 Mood</label>
+                <div class="flex gap-1" id="mood-row"></div>
+            </div>
+            <div class="form-group">
+                <label>⚡ Energy Level</label>
+                <input type="range" id="energy" min="1" max="10" value="5" style="width:100%;">
+                <div class="flex justify-between text-xs text-muted"><span>Low</span><span id="energy-val">5</span><span>High</span></div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label>⚖️ Weight (kg)</label><input type="number" id="log-weight" step="0.1" placeholder="65.0"></div>
+                <div class="form-group"><label>🍽️ Meals Followed</label><select id="meals"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option></select></div>
+            </div>
+            <div class="form-group"><label>📝 Notes</label><textarea id="notes" rows="2" placeholder="How are you feeling today?"></textarea></div>
+            <button class="btn btn-full" onclick="saveProgress()">Save Progress</button>
+        </div>
+
+        <!-- Weekly Summary -->
+        <div class="card fade-in" id="weekly-card">
+            <h3 class="font-bold mb-1">📈 Weekly Summary</h3>
+            <div id="weekly-content" class="text-muted text-sm">Loading...</div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+    let waterCount=0, exerciseDone=0, selectedMood='neutral';
+    const moods=[{e:'😢',v:'sad'},{e:'😐',v:'neutral'},{e:'🙂',v:'good'},{e:'😄',v:'great'},{e:'🤩',v:'amazing'}];
+
+    // Water glasses
+    const wr=document.getElementById('water-row');
+    for(let i=0;i<8;i++){
+        const g=document.createElement('div');
+        g.className='water-glass';g.textContent='💧';
+        g.onclick=()=>{
+            waterCount=i+1;
+            document.querySelectorAll('#water-row .water-glass').forEach((x,j)=>x.classList.toggle('filled',j<waterCount));
+            document.getElementById('water-count').textContent=waterCount+' / 8 glasses';
+        };
+        wr.appendChild(g);
+    }
+
+    // Mood
+    const mr=document.getElementById('mood-row');
+    moods.forEach(m=>{
+        const btn=document.createElement('span');btn.className='mood-btn';btn.textContent=m.e;btn.title=m.v;
+        btn.onclick=()=>{selectedMood=m.v;document.querySelectorAll('#mood-row .mood-btn').forEach(x=>x.classList.remove('selected'));btn.classList.add('selected');};
+        if(m.v==='neutral')btn.classList.add('selected');
+        mr.appendChild(btn);
+    });
+
+    // Energy
+    document.getElementById('energy').oninput=function(){document.getElementById('energy-val').textContent=this.value;};
+
+    function setEx(v){
+        exerciseDone=v;
+        document.getElementById('exYes').className=v?'btn btn-sm':'btn btn-outline btn-sm';
+        document.getElementById('exNo').className=v?'btn btn-outline btn-sm':'btn btn-sm';
+    }
+
+    async function saveProgress(){
+        try{
+            const r=await API.post('/progress/log',{
+                user_id:Auth.getUserId(),
+                date:new Date().toISOString().split('T')[0],
+                water_glasses:waterCount,
+                exercise_done:exerciseDone,
+                meals_followed:parseInt(document.getElementById('meals').value),
+                weight:parseFloat(document.getElementById('log-weight').value)||0,
+                mood:selectedMood,
+                energy_level:parseInt(document.getElementById('energy').value),
+                notes:document.getElementById('notes').value
+            });
+            if(r.success) showToast('Progress saved! Keep going! 💪');
+        }catch(e){}
+    }
+
+    // Load weekly summary
+    (async()=>{
+        try{
+            const s=await API.get('/progress/weekly/'+Auth.getUserId());
+            const wc=document.getElementById('weekly-content');
+            if(s&&!s.error){
+                wc.innerHTML=`
+                <div class="grid-2" style="gap:0.5rem;">
+                    <div class="card text-center" style="padding:0.75rem;margin:0;"><div style="font-size:1.5rem;">💧</div><div class="font-bold">${s.total_water||0}</div><div class="text-xs text-muted">Total Water</div></div>
+                    <div class="card text-center" style="padding:0.75rem;margin:0;"><div style="font-size:1.5rem;">🏃</div><div class="font-bold">${s.exercise_days||0}/7</div><div class="text-xs text-muted">Exercise Days</div></div>
+                    <div class="card text-center" style="padding:0.75rem;margin:0;"><div style="font-size:1.5rem;">⚖️</div><div class="font-bold">${s.avg_weight||'--'}</div><div class="text-xs text-muted">Avg Weight (kg)</div></div>
+                    <div class="card text-center" style="padding:0.75rem;margin:0;"><div style="font-size:1.5rem;">⚡</div><div class="font-bold">${s.avg_energy||'--'}</div><div class="text-xs text-muted">Avg Energy</div></div>
+                </div>
+                <p class="text-xs text-muted mt-1">${s.days_logged||0} days logged this week</p>`;
+            } else { wc.textContent='No data yet. Start logging today!'; }
+        }catch(e){document.getElementById('weekly-content').textContent='Start logging to see your weekly summary.';}
+    })();
+    </script>
+</body>
+</html>

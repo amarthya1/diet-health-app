@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Plan - Diet & Health</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading-overlay"><div class="spinner"></div><span>Loading...</span></div>
+    <header class="header">
+        <a href="home.html" class="logo">🌿 Diet & Health</a>
+        <nav class="nav-desktop"><a href="home.html">Home</a><a href="analysis.html">Analysis</a><a href="diet.html">Diet</a><a href="routine.html">Routine</a><a href="reminders.html">Reminders</a><a href="progress.html">Progress</a><a href="profile.html">Profile</a><button class="btn btn-outline btn-sm logout-btn">Logout</button></nav>
+    </header>
+
+    <div class="container" style="padding-top:1rem;">
+        <div class="flex items-center justify-between mb-1">
+            <h1 style="font-size:1.3rem;font-weight:800;">🥗 Diet Plan</h1>
+            <button class="btn btn-sm" id="genBtn" onclick="generateDiet()">Generate New Plan</button>
+        </div>
+
+        <!-- Day tabs -->
+        <div class="tabs mb-1" id="day-tabs"></div>
+
+        <!-- Meal cards -->
+        <div id="diet-content">
+            <div class="card text-center text-muted"><p>Loading your diet plan...</p></div>
+        </div>
+
+        <!-- Daily summary -->
+        <div id="daily-summary" class="card hidden">
+            <h3 class="font-bold mb-1">📊 Daily Nutrition</h3>
+            <div id="nutrition-bars"></div>
+        </div>
+
+        <!-- Shopping List -->
+        <div id="shopping-section" class="card hidden">
+            <h3 class="font-bold mb-1">🛒 Shopping List</h3>
+            <div id="shopping-list" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item"><span>🏠</span>Home</a>
+        <a href="analysis.html" class="nav-item"><span>🔍</span>Analysis</a>
+        <a href="diet.html" class="nav-item"><span>🥗</span>Diet</a>
+        <a href="routine.html" class="nav-item"><span>📅</span>Routine</a>
+        <a href="reminders.html" class="nav-item"><span>⏰</span>Reminders</a>
+        <a href="profile.html" class="nav-item"><span>👤</span>Profile</a>
+    </nav>
+
+    <script src="script.js"></script>
+    <script>
+    const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    let plan=null, activeDay='Monday';
+
+    // Build day tabs
+    const dt=document.getElementById('day-tabs');
+    days.forEach((d,i)=>{
+        const t=document.createElement('div');
+        t.className='tab'+(i===0?' active':'');
+        t.textContent=d.slice(0,3);
+        t.onclick=()=>{activeDay=d;document.querySelectorAll('#day-tabs .tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');renderDay();};
+        dt.appendChild(t);
+    });
+
+    function renderDay(){
+        const dc=document.getElementById('diet-content');
+        if(!plan||!plan.meal_plan||!plan.meal_plan[activeDay]){
+            dc.innerHTML='<div class="card text-center text-muted"><p>No plan for '+activeDay+'</p></div>';return;
+        }
+        const dm=plan.meal_plan[activeDay];
+        const meals=[
+            {key:'breakfast',icon:'🌅',label:'Breakfast',bg:'#FEF3C7'},
+            {key:'lunch',icon:'☀️',label:'Lunch',bg:'#DBEAFE'},
+            {key:'dinner',icon:'🌙',label:'Dinner',bg:'#E0E7FF'},
+            {key:'snacks',icon:'🍎',label:'Snacks',bg:'#D1FAE5'}
+        ];
+        let html='';
+        meals.forEach(m=>{
+            const item=dm[m.key];
+            if(!item)return;
+            html+=`<div class="card fade-in">
+                <div class="flex items-center gap-1 mb-1">
+                    <div class="meal-icon" style="background:${m.bg}">${m.icon}</div>
+                    <div class="flex-1">
+                        <div class="font-bold text-sm">${m.label}</div>
+                        <div class="text-sm">${item.name}</div>
+                    </div>
+                </div>
+                <div class="flex gap-1" style="flex-wrap:wrap;">
+                    <span class="badge badge-success">🔥 ${item.calories} cal</span>
+                    <span class="badge" style="background:#DBEAFE;color:#1E40AF;">💪 ${item.protein}g P</span>
+                    <span class="badge" style="background:#FEF3C7;color:#92400E;">🌾 ${item.carbs}g C</span>
+                    <span class="badge" style="background:#FCE7F3;color:#9D174D;">🧈 ${item.fat}g F</span>
+                </div>
+            </div>`;
+        });
+        dc.innerHTML=html;
+
+        // Summary
+        const totals={calories:0,protein:0,carbs:0,fat:0};
+        ['breakfast','lunch','dinner','snacks'].forEach(k=>{
+            if(dm[k]){totals.calories+=dm[k].calories||0;totals.protein+=dm[k].protein||0;totals.carbs+=dm[k].carbs||0;totals.fat+=dm[k].fat||0;}
+        });
+        const target=plan.total_calories||2000;
+        document.getElementById('daily-summary').classList.remove('hidden');
+        document.getElementById('nutrition-bars').innerHTML=`
+            <div class="mb-1"><div class="flex justify-between text-xs"><span>Calories</span><span>${totals.calories}/${target}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,totals.calories/target*100)}%"></div></div></div>
+            <div class="mb-1"><div class="flex justify-between text-xs"><span>Protein</span><span>${totals.protein}g</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,totals.protein/150*100)}%;background:#3B82F6"></div></div></div>
+            <div class="mb-1"><div class="flex justify-between text-xs"><span>Carbs</span><span>${totals.carbs}g</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,totals.carbs/200*100)}%;background:#F59E0B"></div></div></div>
+            <div class="mb-1"><div class="flex justify-between text-xs"><span>Fat</span><span>${totals.fat}g</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,totals.fat/70*100)}%;background:#EC4899"></div></div></div>
+        `;
+    }
+
+    async function generateDiet(){
+        const u=Auth.getUser();
+        try{
+            const r=await API.post('/diet/generate-diet',{
+                user_id:Auth.getUserId(),
+                food_preference:u.food_preference||'Veg',
+                goal:u.health_goals||'General Health',
+                calories_target:2000,
+                activity_level:u.activity_level||'moderate'
+            });
+            plan=r;renderDay();renderShopping();
+            showToast('Diet plan generated!');
+        }catch(e){}
+    }
+
+    function renderShopping(){
+        if(plan&&plan.shopping_list&&plan.shopping_list.length){
+            document.getElementById('shopping-section').classList.remove('hidden');
+            document.getElementById('shopping-list').innerHTML=plan.shopping_list.map(s=>`<span class="tag tag-green">${s}</span>`).join('');
+        }
+    }
+
+    // Load existing plan
+    (async()=>{
+        try{
+            const r=await API.get('/diet/get-plan/'+Auth.getUserId());
+            if(r&&r.meal_plan){plan=r;renderDay();renderShopping();}
+            else{document.getElementById('diet-content').innerHTML='<div class="card text-center"><p class="text-muted">No diet plan yet.</p><button class="btn mt-1" onclick="generateDiet()">Generate Your First Plan</button></div>';}
+        }catch(e){
+            document.getElementById('diet-content').innerHTML='<div class="card text-center"><p class="text-muted">No diet plan yet.</p><button class="btn mt-1" onclick="generateDiet()">Generate Your First Plan</button></div>';
+        }
+    })();
+    </script>
+</body>
+</html>
