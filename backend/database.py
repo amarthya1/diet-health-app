@@ -16,6 +16,9 @@ def get_connection():
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
+# Alias used by some modules
+get_db_connection = get_connection
+
 def init_db():
     conn = get_connection()
     c = conn.cursor()
@@ -126,24 +129,50 @@ def init_db():
     migrate_db()
 
 def migrate_db():
-    conn = get_connection()
+    """Add any missing columns to the reminders table."""
+    conn = get_db_connection()
     cursor = conn.cursor()
     columns_to_add = [
-        ("body", "TEXT"),
+        ("body",        "TEXT DEFAULT ''"),
         ("repeat_type", "TEXT DEFAULT 'daily'"),
-        ("category", "TEXT DEFAULT 'other'"),
-        ("is_active", "INTEGER DEFAULT 1")
+        ("category",    "TEXT DEFAULT 'other'"),
+        ("is_active",   "INTEGER DEFAULT 1"),
     ]
     for col_name, col_type in columns_to_add:
         try:
-            cursor.execute(
-                f"ALTER TABLE reminders ADD COLUMN {col_name} {col_type}"
-            )
+            cursor.execute(f"ALTER TABLE reminders ADD COLUMN {col_name} {col_type}")
             conn.commit()
-            print(f"Added column: {col_name}")
+            print(f"Migration: added column {col_name}")
         except Exception as e:
-            pass
+            print(f"Column {col_name} already exists (skipped): {e}")
     conn.close()
+
+
+def reset_reminders_table():
+    """Drop and fully recreate the reminders table with all required columns.
+    Call this once when column-missing errors persist after migrate_db.
+    NOTE: This erases existing reminder data.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS reminders")
+    cursor.execute('''
+        CREATE TABLE reminders (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id       INTEGER,
+            title         TEXT NOT NULL,
+            body          TEXT DEFAULT '',
+            reminder_time TEXT,
+            repeat_type   TEXT DEFAULT 'daily',
+            category      TEXT DEFAULT 'other',
+            is_active     INTEGER DEFAULT 1,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print("Reminders table recreated successfully.")
+
 
 # Auto-init on import
 init_db()

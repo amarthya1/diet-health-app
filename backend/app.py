@@ -55,9 +55,10 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    from database import init_db, migrate_db
+    from database import init_db, migrate_db, reset_reminders_table
     init_db()
-    migrate_db()
+    reset_reminders_table()  # Drop & recreate reminders table with all columns
+    migrate_db()             # Safety: add any still-missing columns
     app = create_app()
     print("\n  Diet & Health Backend running on http://0.0.0.0:5001\n")
     app.run(host="0.0.0.0", port=5001, debug=True)
