@@ -53,6 +53,7 @@
             <div id="default-reminders-list">
                 <!-- Populated by JS -->
             </div>
+            <button class="btn btn-outline btn-full mt-1" onclick="saveDefaultReminders()">Save Defaults</button>
         </div>
 
         <!-- Medications -->
@@ -75,32 +76,34 @@
     <!-- Add Reminder Modal -->
     <div class="modal" id="add-modal">
         <div class="modal-content fade-in">
-            <h3 class="font-bold mb-1">Add Custom Reminder</h3>
+            <h3 class="font-bold mb-1" id="modal-title">Add Custom Reminder</h3>
+            <input type="hidden" id="reminderId">
             <div class="form-group">
-                <label>Title (What to remind?)</label>
-                <input type="text" id="rm-title" placeholder="e.g. Drink Green Tea" required>
+                <label>Title</label>
+                <input type="text" id="reminderTitle" placeholder="e.g. Drink Green Tea" required>
             </div>
             <div class="form-group">
-                <label>Message Focus</label>
-                <input type="text" id="rm-body" placeholder="e.g. Take a 5 min break to sip tea" required>
+                <label>Message/Body</label>
+                <input type="text" id="reminderBody" placeholder="e.g. Take a 5 min break to sip tea" required>
             </div>
             <div class="form-group">
-                <label>Time of Day</label>
-                <input type="time" id="rm-time" required>
+                <label>Time</label>
+                <input type="time" id="reminderTime" required>
             </div>
             <div class="form-group">
                 <label>Category</label>
-                <select id="rm-category">
+                <select id="reminderCategory">
                     <option value="water">💧 Water</option>
                     <option value="food">🥗 Food</option>
                     <option value="medicine">💊 Medicine</option>
                     <option value="exercise">💪 Exercise</option>
+                    <option value="sleep">😴 Sleep</option>
                     <option value="other">🔔 Other</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Repeat Pattern</label>
-                <select id="rm-repeat">
+                <label>Repeat</label>
+                <select id="reminderRepeat">
                     <option value="daily">Daily</option>
                     <option value="once">Once</option>
                     <option value="weekdays">Weekdays Only</option>
@@ -108,7 +111,7 @@
                 </select>
             </div>
             <div class="flex gap-1 mt-2">
-                <button class="btn btn-full" onclick="saveCustomReminder()">Save</button>
+                <button class="btn btn-full" id="save-reminder-btn" onclick="addCustomReminder()">Save</button>
                 <button class="btn btn-outline btn-full" onclick="closeModal()">Cancel</button>
             </div>
         </div>
@@ -219,6 +222,7 @@
                         <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleCustom(${i})">
                         <span class="slider"></span>
                     </label>
+                    <button class="btn btn-outline btn-sm mx-1" onclick="editCustomReminder(${cr.backend_id || cr.id})">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteCustom(${i})">🗑️</button>
                 </div>
             `;
@@ -279,57 +283,214 @@
         renderCustom();
         scheduleAllReminders();
         if (rm.backend_id) {
-            await API.delete(`/reminders/${rm.backend_id}`);
+            await API.req(`/routine/reminders/${rm.backend_id}`, 'DELETE');
         }
     }
 
-    function openModal() { document.getElementById('add-modal').classList.add('active'); }
+    function openModal() { 
+        document.getElementById('modal-title').textContent = 'Add Custom Reminder';
+        document.getElementById('save-reminder-btn').textContent = 'Save';
+        document.getElementById('save-reminder-btn').onclick = addCustomReminder;
+        document.getElementById('reminderTitle').value = '';
+        document.getElementById('reminderBody').value = '';
+        document.getElementById('reminderTime').value = '';
+        document.getElementById('reminderId').value = '';
+        document.getElementById('add-modal').classList.add('active'); 
+    }
     function closeModal() { document.getElementById('add-modal').classList.remove('active'); }
 
-    async function saveCustomReminder() {
-        const title = document.getElementById('rm-title').value;
-        const body = document.getElementById('rm-body').value;
-        const time = document.getElementById('rm-time').value;
-        const cat = document.getElementById('rm-category').value;
-        const repeat = document.getElementById('rm-repeat').value;
-        if (!title || !time) { showToast("Title and time required","error"); return; }
+    function editCustomReminder(id) {
+        const cr = customRems.find(r => r.id === id || r.backend_id === id);
+        if(!cr) return;
+        document.getElementById('modal-title').textContent = 'Edit Custom Reminder';
+        document.getElementById('save-reminder-btn').textContent = 'Update';
+        document.getElementById('save-reminder-btn').onclick = function() { updateReminder(id); };
+        document.getElementById('reminderId').value = id;
+        document.getElementById('reminderTitle').value = cr.title;
+        document.getElementById('reminderBody').value = cr.body || '';
+        document.getElementById('reminderTime').value = cr.time || cr.reminder_time;
+        document.getElementById('reminderCategory').value = cr.category || 'other';
+        document.getElementById('reminderRepeat').value = cr.repeat || cr.repeat_type || 'daily';
+        document.getElementById('add-modal').classList.add('active'); 
+    }
+
+    async function addCustomReminder() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) return;
         
-        const payload = { user_id: Auth.getUserId(), title, body, time, repeat, category: cat };
-        closeModal();
+        const title = document.getElementById('reminderTitle').value;
+        const body = document.getElementById('reminderBody').value;
+        const time = document.getElementById('reminderTime').value;
+        const repeat = document.getElementById('reminderRepeat').value;
+        const category = document.getElementById('reminderCategory').value;
+        
+        if (!title || !time) {
+            showToast('Please fill title and time', 'error');
+            return;
+        }
+        
         try {
-            const res = await API.post('/routine/reminders/add-custom', payload);
-            if (res.success || res.status === "success") {
-                customRems.push({ ...payload, backend_id: res.reminder_id, active: true });
-                localStorage.setItem("customReminders", JSON.stringify(customRems));
-                renderCustom();
-                scheduleAllReminders();
-                showToast("Reminder added!");
+            const response = await fetch(BASE_URL + '/routine/reminders/add-custom', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: user.id,
+                    title: title,
+                    body: body,
+                    reminder_time: time,
+                    repeat_type: repeat,
+                    category: category
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showToast('Reminder added!', 'success');
+                if(window.scheduleReminder) {
+                    scheduleReminder(
+                        'custom_' + data.reminder_id,
+                        title,
+                        body,
+                        time
+                    );
+                }
+                closeModal();
+                loadReminders();
+            } else {
+                showToast(data.message || 'Error adding reminder', 'error');
+            }
+        } catch (error) {
+            showToast('Cannot connect to server', 'error');
+        }
+    }
+
+    async function updateReminder(reminderId) {
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        const title = document.getElementById('reminderTitle').value;
+        const body = document.getElementById('reminderBody').value;
+        const time = document.getElementById('reminderTime').value;
+        const repeat = document.getElementById('reminderRepeat').value;
+        
+        try {
+            const response = await fetch(
+                BASE_URL + '/routine/reminders/update/' + reminderId, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: title,
+                    body: body,
+                    reminder_time: time,
+                    repeat_type: repeat
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                showToast('Reminder updated!', 'success');
+                if(window.cancelReminder && window.scheduleReminder) {
+                    cancelReminder('custom_' + reminderId);
+                    scheduleReminder(
+                        'custom_' + reminderId,
+                        title,
+                        body,
+                        time
+                    );
+                }
+                closeModal();
+                loadReminders();
+            }
+        } catch (error) {
+            showToast('Cannot connect to server', 'error');
+        }
+    }
+
+    async function saveDefaultReminders() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) return;
+        
+        const allRems = [];
+        defaultTemplates.forEach(t => {
+            const timeVal = document.getElementById(`time_${t.id}`).value;
+            const isOn = document.getElementById(`toggle_${t.id}`).checked;
+            if(isOn) {
+                allRems.push({ title: t.title, body: "It's time!", time: timeVal, category: 'routine', repeat: 'daily' });
+            }
+            // Update local tracking
+            if(activePrefs[t.id]) {
+                activePrefs[t.id].time = timeVal;
+                activePrefs[t.id].active = isOn;
+            } else {
+                activePrefs[t.id] = { active: isOn, time: timeVal };
+            }
+        });
+        localStorage.setItem("reminderPrefs", JSON.stringify(activePrefs));
+        
+        try {
+            const response = await fetch(BASE_URL + '/routine/reminders/save-defaults', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: user.id, reminders: allRems })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showToast('Default reminders updated!', 'success');
+                loadReminders();
+                if(window.scheduleAllReminders) {
+                    scheduleAllReminders();
+                }
             }
         } catch(e) {}
     }
 
     async function saveToServer() {
-        // Collect all active preferences to sync to backend
-        const allRems = [];
-        defaultTemplates.forEach(t => {
-            const pref = activePrefs[t.id];
-            if (pref && pref.active) {
-                allRems.push({ title: t.title, body: "It's time!", time: pref.time, category: 'routine', repeat: 'daily' });
-            } else if (!pref) {
-                // If unset, default is active
-                let tTime = t.defTime;
-                if (t.key && userRoutine && userRoutine[t.key]) tTime = userRoutine[t.key];
-                allRems.push({ title: t.title, body: "It's time!", time: tTime, category: 'routine', repeat: 'daily' });
-            }
-        });
+        // Kept for backward compatibility if any other auto-save calls it
+        if(Auth.isLoggedIn()) saveDefaultReminders();
+    }
+
+    async function loadReminders() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) return;
+        
         try {
-            await API.post('/routine/reminders/save', { user_id: Auth.getUserId(), reminders: allRems });
-        } catch(e) {}
+            const response = await fetch(BASE_URL + '/routine/reminders/' + user.id);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Display Custom Reminders (Using existing render logic under a generic name wrapper if needed)
+                const bRems = data.reminders || [];
+                const customs = bRems.filter(r => r.category !== 'routine');
+                customRems = customs.map(c => ({
+                    backend_id: c.id, id: c.id, title: c.title, body: c.body, time: c.reminder_time, 
+                    repeat: c.repeat_type, category: c.category, active: c.is_active === 1
+                }));
+                localStorage.setItem("customReminders", JSON.stringify(customRems));
+                renderCustom(); // This effectively is displayCustomReminders
+
+                // schedule them
+                if (window.scheduleReminder) {
+                    data.reminders.forEach(reminder => {
+                        if (reminder.is_active) {
+                            scheduleReminder(
+                                'custom_' + reminder.id,
+                                reminder.title,
+                                reminder.body || '',
+                                reminder.reminder_time
+                            );
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading reminders:', error);
+        }
     }
 
     async function initialLoad() {
         checkPermissions();
-        // Load meds from backend profile if not present
         if (userMeds.length === 0) {
             try {
                 const p = await API.get('/user/profile/' + Auth.getUserId());
@@ -346,24 +507,9 @@
             } catch(e) {}
         }
         
-        // Fetch custom from backend
-        try {
-            const bRems = await API.get('/routine/reminders/' + Auth.getUserId());
-            if (bRems && Array.isArray(bRems)) {
-                // only keep backend ones labeled as custom 'other', etc or maybe all of them? 
-                // We stored defaults above as 'routine' category in saveToServer.
-                const customs = bRems.filter(r => r.category !== 'routine');
-                customRems = customs.map(c => ({
-                    backend_id: c.id, title: c.title, body: c.body, time: c.reminder_time, 
-                    repeat: c.repeat_type, category: c.category, active: c.is_active === 1
-                }));
-                localStorage.setItem("customReminders", JSON.stringify(customRems));
-            }
-        } catch(e) {}
-        
         renderDefault();
         renderMeds();
-        renderCustom();
+        await loadReminders();
     }
 
     initialLoad();

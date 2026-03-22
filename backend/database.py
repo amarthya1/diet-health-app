@@ -110,15 +110,14 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS reminders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        user_id INTEGER,
         title TEXT NOT NULL,
         body TEXT,
-        reminder_time TEXT NOT NULL,
+        reminder_time TEXT,
         repeat_type TEXT DEFAULT 'daily',
         category TEXT DEFAULT 'other',
         is_active INTEGER DEFAULT 1,
-        created_at TEXT,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
     conn.commit()
@@ -129,12 +128,21 @@ def init_db():
 def migrate_db():
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE reminders ADD COLUMN body TEXT")
-        conn.commit()
-        print("Migration: added body column to reminders")
-    except Exception as e:
-        print("Migration skipped:", str(e))
+    columns_to_add = [
+        ("body", "TEXT"),
+        ("repeat_type", "TEXT DEFAULT 'daily'"),
+        ("category", "TEXT DEFAULT 'other'"),
+        ("is_active", "INTEGER DEFAULT 1")
+    ]
+    for col_name, col_type in columns_to_add:
+        try:
+            cursor.execute(
+                f"ALTER TABLE reminders ADD COLUMN {col_name} {col_type}"
+            )
+            conn.commit()
+            print(f"Added column: {col_name}")
+        except Exception as e:
+            pass
     conn.close()
 
 # Auto-init on import

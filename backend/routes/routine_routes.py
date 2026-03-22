@@ -35,8 +35,6 @@ import json
 
 @routine_bp.route("/reminders/save", methods=["POST"])
 def save_reminders():
-    # Input: user_id, reminders[] (which are custom and default combined or just settings)
-    # The prompt actually says: Save all reminder settings to database
     data = request.get_json()
     if not data or not data.get("user_id"):
         return jsonify({"status": "error", "message": "User ID required"}), 400
@@ -47,8 +45,8 @@ def save_reminders():
     conn = get_connection()
     c = conn.cursor()
     try:
-        # Clear existing active reminders for this user
-        c.execute("DELETE FROM reminders WHERE user_id=?", (user_id,))
+        # Delete only old routine reminders to prevent duplicate defaults
+        c.execute("DELETE FROM reminders WHERE user_id=? AND category='routine'", (user_id,))
         for r in reminders:
             c.execute('''INSERT INTO reminders 
                 (user_id, title, body, reminder_time, repeat_type, category, is_active)
@@ -63,6 +61,29 @@ def save_reminders():
     conn.close()
     return jsonify({"status": "success", "message": "Reminders saved"}), 200
 
+@routine_bp.route("/reminders/save-defaults", methods=["POST"])
+def save_defaults():
+    data = request.get_json()
+    if not data or not data.get("user_id"):
+        return jsonify({"status": "error", "message": "User ID required"}), 400
+    user_id = data.get("user_id")
+    reminders = data.get("reminders", [])
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute("DELETE FROM reminders WHERE user_id=? AND category='routine'", (user_id,))
+        for r in reminders:
+            c.execute('''INSERT INTO reminders 
+                (user_id, title, body, reminder_time, repeat_type, category, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+                (user_id, r.get("title"), r.get("body", ""), r.get("time", ""), 
+                 r.get("repeat", "daily"), r.get("category", "routine"), 1))
+        conn.commit()
+    except Exception as e:
+        conn.close()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    conn.close()
+    return jsonify({"status": "success", "message": "Default rems saved"}), 200
 
 @routine_bp.route("/reminders/<int:user_id>", methods=["GET"])
 def get_reminders(user_id):
@@ -71,11 +92,8 @@ def get_reminders(user_id):
     c.execute("SELECT * FROM reminders WHERE user_id=?", (user_id,))
     rows = c.fetchall()
     conn.close()
-    
-    reminders = []
-    for row in rows:
-        reminders.append(dict(row))
-    return jsonify(reminders), 200
+    reminders = [dict(row) for row in rows]
+    return jsonify({"status": "success", "reminders": reminders}), 200
 
 @routine_bp.route("/reminders/add-custom", methods=["POST"])
 def add_custom_reminder():
@@ -86,12 +104,13 @@ def add_custom_reminder():
     user_id = data.get("user_id")
     conn = get_connection()
     c = conn.cursor()
+    rem_id = None
     try:
         c.execute('''INSERT INTO reminders 
             (user_id, title, body, reminder_time, repeat_type, category, is_active)
             VALUES (?, ?, ?, ?, ?, ?, ?)''', 
-            (user_id, data.get("title"), data.get("body", ""), data.get("time", ""), 
-             data.get("repeat", "once"), data.get("category", "other"), 1))
+            (user_id, data.get("title"), data.get("body", ""), data.get("reminder_time", ""), 
+             data.get("repeat_type", "once"), data.get("category", "other"), 1))
         conn.commit()
         rem_id = c.lastrowid
     except Exception as e:
@@ -99,6 +118,24 @@ def add_custom_reminder():
         return jsonify({"status": "error", "message": str(e)}), 500
     conn.close()
     return jsonify({"status": "success", "message": "Reminder added", "reminder_id": rem_id}), 200
+
+@routine_bp.route("/reminders/update/<int:reminder_id>", methods=["PUT"])
+def update_reminder(reminder_id):
+    data = request.get_json()
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute('''UPDATE reminders 
+            SET title=?, body=?, reminder_time=?, repeat_type=? 
+            WHERE id=?''', 
+            (data.get("title"), data.get("body", ""), data.get("reminder_time", ""), 
+             data.get("repeat_type", "daily"), reminder_id))
+        conn.commit()
+    except Exception as e:
+        conn.close()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    conn.close()
+    return jsonify({"status": "success", "message": "Reminder updated"}), 200
 
 @routine_bp.route("/reminders/<int:reminder_id>", methods=["DELETE"])
 def delete_reminder(reminder_id):
@@ -112,3 +149,4 @@ def delete_reminder(reminder_id):
         return jsonify({"status": "error", "message": str(e)}), 500
     conn.close()
     return jsonify({"status": "success", "message": "Reminder deleted"}), 200
+
